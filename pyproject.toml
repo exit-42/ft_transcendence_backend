@@ -1,0 +1,12 @@
+[tool.black]
+target-version = ["py39"]
+
+exclude = '''
+(
+  ^.*/backend/transcendence/asgi\.py$
+  | ^.*/backend/transcendence/urls\.py$
+  | ^.*/backend/transcendence/wsgi\.py$
+  | ^.*/backend/transcendence/settings\.py$
+  | ^.*/backend/manage\.py$
+)
+'''

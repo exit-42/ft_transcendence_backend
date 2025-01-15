@@ -1,2 +1,13 @@
 *.cc
 *.cpp
+
+# Python 파일 제외
+*.pyc
+*.pyo
+__pycache__/
+
+# 환경 파일 제외
+.env
+
+# Makefile 제외
+Makefile
