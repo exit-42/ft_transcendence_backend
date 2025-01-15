@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+    db:
+        image: postgres:15
+        networks:
+            - intra
+        env_file:
+            - .env
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+
+    backend:
+        build: ./backend
+        ports:
+            - "8000:8000"
+        networks:
+            - intra
+        depends_on:
+            - db
+        env_file:
+            - .env
+        volumes:
+            - ./backend:/app/backend
+
+networks:
+    intra:
+
+volumes:
+    pgdata:
