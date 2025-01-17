@@ -5,7 +5,7 @@ while ! nc -z "$POSTGRES_HOST" "$POSTGRES_PORT"; do
     sleep 3
 done
 
-python manage.py makemigrations
+python manage.py makemigrations account
 python manage.py migrate
 
 python manage.py shell -c "
