@@ -5,6 +5,7 @@
 *.pyc
 *.pyo
 __pycache__/
+migrations/
 
 # 환경 파일 제외
 .env
