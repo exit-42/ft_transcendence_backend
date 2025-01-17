@@ -28,7 +28,7 @@ class OAuthAdmin(admin.ModelAdmin):
     @details OAuth 기능을 사용하는 사용자의 인증정보를 관리
 
     @list_display 목록에 표시할 필드
-    @search_fields 검색할 수 있는 필드 (유저의 고유번호가 아니라 nickname으로 검색할 수 있도록 변경)
+    @search_fields 검색할 수 있는 필드
     """
 
     list_display = ("intraId", "user")

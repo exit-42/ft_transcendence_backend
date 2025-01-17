@@ -10,7 +10,7 @@ class User(AbstractUser):
     @details 사용자의 프로필 정보를 관리
 
     @imagePath 프로필 이미지 url path
-    @nickname 유저가 스스로를 정의하는 별명 (unique) nickname의 초기값은 랜덤으로 설정할 계획이기에 null=True를 제거
+    @nickname 유저가 스스로를 정의하는 별명
     @winCnt 유저의 1대1 매치 승리 횟수
     @loseCnt 유저의 1대1 매치 패배 횟수
     """
@@ -30,7 +30,7 @@ class OAuth(models.Model):
     @details OAuth 기능을 사용하는 사용자의 인증정보를 관리
 
     @user OAuth 인증을 통해 특정되는 사용자
-    @intraId 42서버로부터 OAuth 인증을 통해 수신할 수 있는 유저의 고유정보(인트라 아이디). 잦은 filter 사용이 예상되어 db_index 설정을 추가.
+    @intraId 42서버로부터 OAuth 인증을 통해 수신할 수 있는 유저의 고유정보(인트라 아이디).
     """
 
     user = models.OneToOneField(
