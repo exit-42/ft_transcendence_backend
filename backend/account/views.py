@@ -11,7 +11,6 @@ User = get_user_model()
 from account.models import OAuth
 
 
-@api_view(["GET"])
 def get_oauth_token(request):
     """
     @brief 클라이언트를 42 API의 OAuth 인증 페이지로 리디렉션하는 함수
