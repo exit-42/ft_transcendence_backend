@@ -1,4 +1,4 @@
-import os, requests, random
+import os, requests, random, json
 from django.conf import settings
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import redirect
@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view
 
 User = get_user_model()
 
-from account.models import OAuth
+from account.models import OAuth, LocalAuth
 
 
 def get_oauth_token(request):
@@ -170,3 +170,71 @@ def get_or_create_user_oauth(intra_id, user_email, user_image_path):
         return user, created
     except Exception as e:
         return None, False
+
+
+@api_view(["POST"])
+def get_local_auth_token(request):
+    """
+    @brief LocalAuth 회원에게 JWT를 발급하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지(localhost)로 리디렉션
+        - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
+
+    @details
+    Request의 바디에서 id와 password를 추출한다.
+    LocalAuth 테이블에서 입력받은 id와 동일한 localId를 가진 객체가 존재하는지 확인한다.
+    - 일치하는 객체가 없는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
+    - 일치하는 객체가 있는 경우 입력받은 password와 localPassword가 일치하는지 확인한다.
+        - 일치하는 객체가 없는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
+        - 일치하는 객체가 있는 경우 유저 객체를 통해 JWT를 생성하여 사용자의 클라이언트 쿠키에 access_token과 refresh_token을 저장한다.
+          이후 사용자를 기본 페이지(http://localhost)로 리디렉션한다.
+    """
+    try:
+        data = json.loads(request.body)
+        local_id = data.get("id")
+        local_password = data.get("password")
+        if not local_id or not local_password:
+            return JsonResponse(
+                {
+                    "error": "Please provide id and password. Both are required.",
+                },
+                status=400,
+            )
+        try:
+            local_auth = LocalAuth.objects.get(localId=local_id)
+        except LocalAuth.DoesNotExist:
+            return JsonResponse({"error": "id not exist."}, status=404)
+        if local_password != local_auth.localPassword:
+            return JsonResponse({"error": "wrong password."}, status=401)
+        user = local_auth.user
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+        response = HttpResponseRedirect("http://localhost")
+        response.set_cookie(
+            key="access_token",
+            value=str(access),
+            httponly=True,
+            secure=False,
+            samesite="Lax",
+            max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+            path="/",
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=str(refresh),
+            httponly=True,
+            secure=False,
+            samesite="Lax",
+            max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
+            path="/",
+        )
+        return response
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Bad request. please send the data as JSON format."}, status=400
+        )
+    except Exception as e:
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
