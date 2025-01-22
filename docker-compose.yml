@@ -23,6 +23,7 @@ services:
 
 networks:
     intra:
+        external: true
 
 volumes:
     pgdata:

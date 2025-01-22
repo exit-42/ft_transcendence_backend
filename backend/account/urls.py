@@ -3,4 +3,7 @@ from . import views
 
 app_name = "account"
 
-urlpatterns = []
+urlpatterns = [
+    path("oauth/token/", views.get_oauth_token),
+    path("oauth/callback/", views.callback),
+]
