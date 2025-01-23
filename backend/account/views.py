@@ -198,9 +198,7 @@ def get_local_auth_token(request):
         local_password = data.get("password")
         if not local_id or not local_password:
             return JsonResponse(
-                {
-                    "error": "Please provide id and password. Both are required.",
-                },
+                {"error": "Please provide id and password. Both are required."},
                 status=400,
             )
         try:
@@ -234,7 +232,33 @@ def get_local_auth_token(request):
         return response
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Bad request. please send the data as JSON format."}, status=400
+            {"error": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"message": f"{str(e)}"}, status=500)
+        return JsonResponse({"error": f"{str(e)}"}, status=500)
+
+
+@api_view(["GET"])
+def check_local_auth_id(request):
+    """
+    @brief 특정 ID를 가진 LocalAuth 객체가 존재하는지 확인하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return ID 중복여부를 JSON 형태로 반환
+
+    @details
+    URL 쿼리 스트링에서 local_id를 추출한다.
+    LocalAuth 테이블에 local_id와 동일한 localID를 가진 객체가 존재하는지 확인한다.
+    """
+    try:
+        local_id = request.GET.get("id")
+        if not local_id:
+            return JsonResponse({"error": "id not provided."}, status=400)
+
+        if LocalAuth.objects.filter(localId=local_id).exists():
+            return JsonResponse({"exists": True}, status=200)
+        else:
+            return JsonResponse({"exists": False}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": f"{str(e)}"}, status=500)
