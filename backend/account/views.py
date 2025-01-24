@@ -190,7 +190,7 @@ def get_local_auth_token(request):
     - 일치하는 객체가 있는 경우 입력받은 password와 localPassword가 일치하는지 확인한다.
         - 일치하는 객체가 없는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
         - 일치하는 객체가 있는 경우 유저 객체를 통해 JWT를 생성하여 사용자의 클라이언트 쿠키에 access_token과 refresh_token을 저장한다.
-          이후 사용자를 기본 페이지(http://localhost)로 리디렉션한다.
+          성공메시지를 JsonResponse 형태로 리턴한다.
     """
     try:
         data = json.loads(request.body)
@@ -210,7 +210,7 @@ def get_local_auth_token(request):
         user = local_auth.user
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-        response = HttpResponseRedirect("http://localhost")
+        response = JsonResponse({"message": "success"}, status=200)
         response.set_cookie(
             key="access_token",
             value=str(access),
@@ -245,7 +245,7 @@ def check_local_auth_id(request):
 
     @param request Django의 HTTP 요청 객체
 
-    @return ID 중복여부를 JSON 형태로 반환
+    @return ID 중복여부를 상태코드와 JSON 형태로 반환
 
     @details
     URL 쿼리 스트링에서 local_id를 추출한다.
@@ -254,11 +254,58 @@ def check_local_auth_id(request):
     try:
         local_id = request.GET.get("id")
         if not local_id:
-            return JsonResponse({"error": "id not provided."}, status=400)
+            return JsonResponse({"error": "ID not provided."}, status=400)
 
         if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"exists": True}, status=200)
+            return JsonResponse({"error": "ID already in use"}, status=409)
         else:
-            return JsonResponse({"exists": False}, status=200)
+            return JsonResponse({"message": "ID is available", "id": local_id}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
+
+@api_view(["POST"])
+def local_auth_sign_up(request):
+    """
+    @brief LocalAuth 회원가입 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공: 상태 코드를 JSON 형태로 반환
+        - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
+
+    @details
+    Request의 바디에서 id와 password를 추출한다.
+    LocalAuth 테이블에서 입력받은 id와 동일한 localId를 가진 객체가 존재하는지 확인한다.
+        - 일치하는 객체가 있는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
+        - 일치하는 객체가 없는 경우 입력받은 값으로 유저를 생성하고 상태코드를 JsonResponse 형태로 리턴한다.
+    """
+    try:
+        data = json.loads(request.body)
+        local_id = data.get("id")
+        local_password = data.get("password")
+        user_email = data.get("email")
+
+        if not local_id or not local_password or not user_email:
+            return JsonResponse({"error": "All fields are required."}, status=400)
+
+        if LocalAuth.objects.filter(localId=local_id).exists():
+            return JsonResponse({"error": "ID already in use"}, status=409)
+
+        random_nickname = generate_random_nickname()
+        user = User.objects.create(
+            email=user_email,
+            imagePath="/static/image/default.jpeg",
+            nickname=random_nickname,
+        )
+        LocalAuth.objects.create(
+            user=user, localId=local_id, localPassword=local_password
+        )
+        return JsonResponse({"message": "Sign-up success!"}, status=201)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Please send the data in JSON format."}, status=400
+        )
     except Exception as e:
         return JsonResponse({"error": f"{str(e)}"}, status=500)
