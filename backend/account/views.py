@@ -5,6 +5,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
+from django.contrib.auth.hashers import make_password, check_password
 
 User = get_user_model()
 
@@ -205,7 +206,7 @@ def get_local_auth_token(request):
             local_auth = LocalAuth.objects.get(localId=local_id)
         except LocalAuth.DoesNotExist:
             return JsonResponse({"error": "id not exist."}, status=404)
-        if local_password != local_auth.localPassword:
+        if not check_password(local_password, local_auth.localPassword):
             return JsonResponse({"error": "wrong password."}, status=401)
         user = local_auth.user
         refresh = RefreshToken.for_user(user)
@@ -298,11 +299,12 @@ def local_auth_sign_up(request):
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath="/static/image/default.jpeg",
+            imagePath="http://localhost/static/image/default.jpeg",
             nickname=random_nickname,
         )
+        hashed_password = make_password(local_password)
         LocalAuth.objects.create(
-            user=user, localId=local_id, localPassword=local_password
+            user=user, localId=local_id, localPassword=hashed_password
         )
         return JsonResponse({"message": "Sign-up success!"}, status=201)
     except json.JSONDecodeError:

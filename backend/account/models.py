@@ -41,7 +41,7 @@ class OAuth(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="oauth_account"
     )
-    intraId = models.CharField(max_length=255, unique=True, db_index=True)
+    intraId = models.CharField(max_length=255, primary_key=True)
 
     def __str__(self):
         return self.intraId
@@ -60,8 +60,8 @@ class LocalAuth(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="local_auth"
     )
-    localId = models.CharField(max_length=30, unique=True, db_index=True)
-    localPassword = models.CharField(max_length=30)
+    localId = models.CharField(max_length=255, primary_key=True)
+    localPassword = models.CharField(max_length=200)
 
     def __str__(self):
         return self.localId
