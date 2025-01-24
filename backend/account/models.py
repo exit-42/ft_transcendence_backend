@@ -41,7 +41,27 @@ class OAuth(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="oauth_account"
     )
-    intraId = models.CharField(max_length=255, unique=True, db_index=True)
+    intraId = models.CharField(max_length=255, primary_key=True)
 
     def __str__(self):
         return self.intraId
+
+
+class LocalAuth(models.Model):
+    """
+    @brief LocalAuth 모델 설정
+    @details LocalAuth 기능을 사용하는 사용자의 인증정보를 관리
+
+    @user LocalAuth 인증을 통해 특정되는 사용자
+    @localId LocalAuth 로그인에 사용되는 유저의 아이디.
+    @localPassword LocalAuth 로그인에 사용되는 유저의 비밀번호.
+    """
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="local_auth"
+    )
+    localId = models.CharField(max_length=255, primary_key=True)
+    localPassword = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.localId
