@@ -259,7 +259,9 @@ def check_local_auth_id(request):
         if LocalAuth.objects.filter(localId=local_id).exists():
             return JsonResponse({"error": "ID already in use"}, status=409)
         else:
-            return JsonResponse({"message": "ID is available", "id": local_id}, status=200)
+            return JsonResponse(
+                {"message": "ID is available", "id": local_id}, status=200
+            )
     except Exception as e:
         return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
 
