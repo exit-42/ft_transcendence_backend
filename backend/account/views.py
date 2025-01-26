@@ -85,7 +85,7 @@ def callback(request):
         user, created = get_or_create_user_oauth(intra_id, user_email, user_image_path)
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-        response = HttpResponseRedirect(os.environ("SERVER_URL"))
+        response = HttpResponseRedirect(os.environ.get("SERVER_URL"))
         response.set_cookie(
             key="access_token",
             value=str(access),
@@ -406,7 +406,7 @@ def local_auth_sign_up(request):
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath=os.environ("SERVER_URL") + "/static/image/default.jpeg",
+            imagePath=os.environ.get("SERVER_URL") + "/static/image/default.jpeg",
             nickname=random_nickname,
         )
         hashed_password = make_password(local_password)
