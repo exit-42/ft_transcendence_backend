@@ -38,7 +38,7 @@ def callback(request):
     @param request Django의 HTTP 요청 객체
 
     @return
-        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지(localhost)로 리디렉션
+        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지로 리디렉션
         - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
 
     @details
@@ -49,7 +49,7 @@ def callback(request):
         - 동일한 유저가 없으면 새 사용자 정보를 데이터베이스에 저장하고 유저 객체를 통해
         - 동일한 유저가 있으면 해당 유저 객체를 통해
     JWT를 생성하여 사용자의 클라이언트 쿠키에 access_token과 refresh_token을 저장한다.
-    이후 사용자를 기본 페이지(https://localhost)로 리디렉션한다.
+    이후 사용자를 기본 페이지로 리디렉션한다.
     """
     code = request.GET.get("code")
     if not code:
@@ -85,7 +85,7 @@ def callback(request):
         user, created = get_or_create_user_oauth(intra_id, user_email, user_image_path)
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-        response = HttpResponseRedirect("https://localhost")
+        response = HttpResponseRedirect(os.environ("SERVER_URL"))
         response.set_cookie(
             key="access_token",
             value=str(access),
@@ -181,7 +181,7 @@ def get_local_auth_token(request):
     @param request Django의 HTTP 요청 객체
 
     @return
-        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지(localhost)로 리디렉션
+        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지로 리디렉션
         - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
 
     @details
@@ -406,7 +406,7 @@ def local_auth_sign_up(request):
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath="https://localhost/static/image/default.jpeg",
+            imagePath=os.environ("SERVER_URL") + "/static/image/default.jpeg",
             nickname=random_nickname,
         )
         hashed_password = make_password(local_password)
