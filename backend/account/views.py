@@ -3,10 +3,11 @@ from django.conf import settings
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework.decorators import api_view
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
+from rest_framework_simplejwt.exceptions import TokenError
 
 User = get_user_model()
 
@@ -424,3 +425,65 @@ def local_auth_sign_up(request):
         )
     except Exception as e:
         return JsonResponse({"error": f"{str(e)}"}, status=500)
+
+
+def authenticate_token(request):
+    """
+    @brief JWT 검증 함수
+
+    @param request 그대로 넘겨줌.
+
+    @return
+        - 성공 : (유저 객체, None) 형식으로 반환
+        - 실패 (access_token 만료) : (None, 토큰 갱신 성공메시지) 형식으로 반환
+        - 실패 (refresh_token 만료 or 유효하지 않은 JWT) : (None, 실패메시지) 형식으로 반환
+
+    @details
+    request의 쿠키에서 access_token과 refresh_token을 가져온다.
+    access_token을 디코딩하여 user_id를 추출한다.
+    access_token의 payload에서 user_id(pk)를 가져온다.
+        - access_token이 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 성공메시지) 형식으로 반환한다.
+        - refresh_token이 만료되었거나 access_token이 유효하지 않으면 (None, 실패메시지) 형식으로 반환한다.
+    추출된 user_id를 기반으로 User 테이블에서 사용자 객체를 찾아서 (User, None) 형식으로 반환한다.
+    """
+    access_token = request.COOKIES.get("access_token")
+    refresh_token = request.COOKIES.get("refresh_token")
+
+    if not access_token or not refresh_token:
+        return None, JsonResponse({"error": "JWTs are missing."}, status=401)
+
+    try:
+        access_payload = AccessToken(access_token)
+        user_id = access_payload.get("user_id")
+    except TokenError:
+        try:
+            refresh = RefreshToken(refresh_token)
+            new_access = refresh.access_token
+
+            response = JsonResponse(
+                {"message": "Token refreshed successfully."}, status=200
+            )
+            response.set_cookie(
+                key="access_token",
+                value=str(new_access),
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+                path="/",
+            )
+            return None, response
+        except TokenError as e:
+            return None, JsonResponse(
+                {"error": "Invalid or expired refresh token"}, status=401
+            )
+
+    if not user_id:
+        return None, JsonResponse(
+            {"error": "Invalid token payload: user_id missing"}, status=401
+        )
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None, JsonResponse({"error": "User not found"}, status=404)
+    return user, None
