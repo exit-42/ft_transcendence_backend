@@ -518,3 +518,32 @@ def login(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_view(["GET"])
+def logout(request):
+    """
+    @brief 쿠키에 저장된 JWT를 삭제하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 유저의 쿠키에 저장된 JWT를 삭제, 로그아웃 성공메시지 JsonResponse 형식으로 반환
+        - 실패 : 에러메시지와 상태코드 JsonResponse 형식으로 반환
+
+    @details JWT 검증 함수(authenticate_token)의 결과가 유효하면 유저 데이터를 반환한다.
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        response = JsonResponse(
+            {"message": "{user.nickname} logged out successfully."}, status=200
+        )
+        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("refresh_token", path="/")
+        return response
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
