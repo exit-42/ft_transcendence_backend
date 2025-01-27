@@ -487,3 +487,34 @@ def authenticate_token(request):
     except User.DoesNotExist:
         return None, JsonResponse({"error": "User not found"}, status=404)
     return user, None
+
+
+@api_view(["GET"])
+def login(request):
+    """
+    @brief JWT를 통해 유저 데이터를 불러오는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 유저 데이터 JsonResponse 형식으로 반환
+        - 실패 : 에러메시지와 상태코드 JsonResponse 형식으로 반환
+
+    @details JWT 검증 함수(authenticate_token)의 결과가 유효하면 유저 데이터를 반환한다.
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        user_data = {
+            "username": user.username,
+            "imagePath": user.imagePath,
+            "nickname": user.nickname,
+            "winCnt": user.winCnt,
+            "loseCnt": user.loseCnt,
+        }
+        return JsonResponse(user_data, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

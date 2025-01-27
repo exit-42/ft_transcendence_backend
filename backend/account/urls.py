@@ -11,4 +11,5 @@ urlpatterns = [
     path("local-auth/signup/", views.local_auth_sign_up),
     path("local-auth/email/", views.send_authentication_email),
     path("local-auth/code/", views.authenticate_code),
+    path("login/", views.login),
 ]
