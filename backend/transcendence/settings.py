@@ -185,5 +185,5 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOW_HEADERS = [
     "content-type",
     "authorization",
-    "x-csrf-token",
+    "x-csrftoken",
 ]
