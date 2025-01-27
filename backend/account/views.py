@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.mail import send_mail
 
 User = get_user_model()
 
@@ -24,7 +25,6 @@ def get_oauth_token(request):
     환경 변수에서 CLIENT_ID와 REDIRECT_URI를 읽어와 OAuth 인증 URL을 생성합니다.
     생성된 URL로 리디렉션하여 42 인증을 시작합니다.
     """
-
     client_id = os.environ.get("CLIENT_ID")
     redirect_uri = os.environ.get("REDIRECT_URI")
     authorize_uri = f"https://api.intra.42.fr/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=public"
@@ -38,7 +38,7 @@ def callback(request):
     @param request Django의 HTTP 요청 객체
 
     @return
-        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지(localhost)로 리디렉션
+        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지로 리디렉션
         - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
 
     @details
@@ -49,7 +49,7 @@ def callback(request):
         - 동일한 유저가 없으면 새 사용자 정보를 데이터베이스에 저장하고 유저 객체를 통해
         - 동일한 유저가 있으면 해당 유저 객체를 통해
     JWT를 생성하여 사용자의 클라이언트 쿠키에 access_token과 refresh_token을 저장한다.
-    이후 사용자를 기본 페이지(http://localhost)로 리디렉션한다.
+    이후 사용자를 기본 페이지로 리디렉션한다.
     """
     code = request.GET.get("code")
     if not code:
@@ -85,12 +85,12 @@ def callback(request):
         user, created = get_or_create_user_oauth(intra_id, user_email, user_image_path)
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-        response = HttpResponseRedirect("http://localhost")
+        response = HttpResponseRedirect(os.environ.get("SERVER_URL"))
         response.set_cookie(
             key="access_token",
             value=str(access),
             httponly=True,
-            secure=False,  # 나중에 True로 변경
+            secure=True,
             samesite="Lax",
             max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
             path="/",
@@ -99,7 +99,7 @@ def callback(request):
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,  # 나중에 True로 변경
+            secure=True,
             samesite="Lax",
             max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
             path="/",
@@ -130,9 +130,9 @@ def generate_random_nickname():
     최종적으로 중복되지 않은 닉네임을 리턴한다.
     """
     while True:
-        random_number = f"{random.randint(10000, 99999):05}"  # 5자리 숫자 생성
+        random_number = f"{random.randint(10000, 99999):05}"
         nickname = f"USER#{random_number}"
-        if not User.objects.filter(nickname=nickname).exists():  # 중복 확인
+        if not User.objects.filter(nickname=nickname).exists():
             return nickname
 
 
@@ -181,7 +181,7 @@ def get_local_auth_token(request):
     @param request Django의 HTTP 요청 객체
 
     @return
-        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지(localhost)로 리디렉션
+        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지로 리디렉션
         - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
 
     @details
@@ -216,7 +216,7 @@ def get_local_auth_token(request):
             key="access_token",
             value=str(access),
             httponly=True,
-            secure=False,
+            secure=True,
             samesite="Lax",
             max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
             path="/",
@@ -225,7 +225,7 @@ def get_local_auth_token(request):
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,
+            secure=True,
             samesite="Lax",
             max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
             path="/",
@@ -268,6 +268,105 @@ def check_local_auth_id(request):
 
 
 @api_view(["POST"])
+def send_authentication_email(request):
+    """
+    @brief 인증 이메일 전송 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return 이메일 전송 성공여부를 상태코드와 JSON 형태로 반환
+
+    @details
+    Request의 바디에서 user_email을 추출.
+    랜덤 인증 코드를 생성.
+    세션에 다음 정보를 저장:
+        - authenticate_code: 생성된 인증 코드
+        - authenticate_email: 사용자 이메일
+        - is_authenticated: False
+    user_email으로 랜덤 인증 코드를 전송.
+    이메일 전송 성공여부를 반환.
+    """
+    try:
+        data = json.loads(request.body)
+        user_email = data.get("email")
+
+        if not user_email:
+            return JsonResponse({"error": "Email is required."}, status=400)
+
+        random_code = str(random.randint(10000, 99999))
+        request.session["authenticate_code"] = random_code
+        request.session["authenticate_email"] = user_email
+        request.session["is_authenticated"] = False
+
+        send_mail(
+            subject="Your Authentication Code",
+            message=f"Your authentication code is: {random_code}",
+            from_email=os.environ.get("EMAIL_HOST_USER"),
+            recipient_list=[user_email],
+            fail_silently=False,
+        )
+        return JsonResponse({"message": "Email has been sent."}, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Please send the data in JSON format."}, status=400
+        )
+    except Exception as e:
+        return JsonResponse({"error": f"{str(e)}"}, status=500)
+
+
+@api_view(["POST"])
+def authenticate_code(request):
+    """
+    @brief 인증 코드를 검증하고 세션의 인증 상태를 업데이트하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공: 세션의 인증 상태를 True로 설정하고 성공메시지 반환
+        - 실패: 상태 코드와 에러메시지 반환
+
+    @detail
+    Request의 바디에서 user_email과 인증 코드(code)를 추출.
+    세션에 저장된 이메일과 입력받은 user_email이 동일한지 검사.
+    세션에 저장된 인증코드와 입력받은 인증코드가 동일한지 검사.
+        - 동일하지 않다면 에러메시지를 JSON 형태로 반환.
+        - 동일하다면 세션의 is_authenticated 값을 True로 바꾸고 성공메시지를 JSON 형태로 반환.
+    """
+    try:
+        data = json.loads(request.body)
+        authenticate_email = data.get("email")
+        authenticate_code = data.get("code")
+
+        if not authenticate_email:
+            return JsonResponse({"error": "Email is required."}, status=400)
+
+        if not authenticate_code:
+            return JsonResponse({"error": "Code is required."}, status=400)
+
+        stored_code = request.session.get("authenticate_code")
+        stored_email = request.session.get("authenticate_email")
+
+        if not stored_code or not stored_email:
+            return JsonResponse(
+                {"error": "Session data is missing or expired."}, status=400
+            )
+
+        if stored_code == authenticate_code and stored_email == authenticate_email:
+            request.session["is_authenticated"] = True
+            return JsonResponse({"message": "Authentication successful."}, status=200)
+        else:
+            return JsonResponse({"error": "Invalid code or email."}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Please send the data in JSON format."}, status=400
+        )
+    except Exception as e:
+        return JsonResponse({"error": f"{str(e)}"}, status=500)
+
+
+@api_view(["POST"])
 def local_auth_sign_up(request):
     """
     @brief LocalAuth 회원가입 함수
@@ -282,7 +381,8 @@ def local_auth_sign_up(request):
     Request의 바디에서 id와 password를 추출한다.
     LocalAuth 테이블에서 입력받은 id와 동일한 localId를 가진 객체가 존재하는지 확인한다.
         - 일치하는 객체가 있는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
-        - 일치하는 객체가 없는 경우 입력받은 값으로 유저를 생성하고 상태코드를 JsonResponse 형태로 리턴한다.
+        - 일치하는 객체가 없는 경우 이메일 인증여부를 확인한다.
+            - 이메일 인증을 확인한 후 입력받은 값으로 유저를 생성하고 상태코드를 JSON 형태로 리턴한다.
     """
     try:
         data = json.loads(request.body)
@@ -296,17 +396,28 @@ def local_auth_sign_up(request):
         if LocalAuth.objects.filter(localId=local_id).exists():
             return JsonResponse({"error": "ID already in use"}, status=409)
 
+        stored_email = request.session.get("authenticate_email")
+        is_authenticated = request.session.get("is_authenticated")
+
+        if stored_email != user_email or not is_authenticated:
+            return JsonResponse(
+                {"error": "Email verification is required."}, status=403
+            )
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath="http://localhost/static/image/default.jpeg",
+            imagePath=os.environ.get("SERVER_URL") + "/static/image/default.jpeg",
             nickname=random_nickname,
         )
         hashed_password = make_password(local_password)
         LocalAuth.objects.create(
             user=user, localId=local_id, localPassword=hashed_password
         )
+        del request.session["authenticate_email"]
+        del request.session["authenticate_code"]
+        del request.session["is_authenticated"]
         return JsonResponse({"message": "Sign-up success!"}, status=201)
+
     except json.JSONDecodeError:
         return JsonResponse(
             {"error": "Please send the data in JSON format."}, status=400

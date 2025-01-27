@@ -4,3 +4,4 @@ black
 requests
 djangorestframework
 djangorestframework-simplejwt
+django-cors-headers
