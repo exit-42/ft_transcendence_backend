@@ -435,15 +435,15 @@ def authenticate_token(request):
 
     @return
         - 성공 : (유저 객체, None) 형식으로 반환
-        - 실패 (access_token 만료) : (None, 토큰 갱신 성공메시지) 형식으로 반환
-        - 실패 (refresh_token 만료 or 유효하지 않은 JWT) : (None, 실패메시지) 형식으로 반환
+        - 실패 (access_token 만료) : (None, 토큰 갱신 메시지) 형식으로 반환
+        - 실패 (refresh_token 만료 or 유효하지 않은 JWT) : (None, 실패 메시지) 형식으로 반환
 
     @details
     request의 쿠키에서 access_token과 refresh_token을 가져온다.
     access_token을 디코딩하여 user_id를 추출한다.
     access_token의 payload에서 user_id(pk)를 가져온다.
-        - access_token이 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 성공메시지) 형식으로 반환한다.
-        - refresh_token이 만료되었거나 access_token이 유효하지 않으면 (None, 실패메시지) 형식으로 반환한다.
+        - access_token이 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 메시지) 형식으로 반환한다.
+        - refresh_token이 만료되었거나 access_token이 유효하지 않으면 (None, 실패 메시지) 형식으로 반환한다.
     추출된 user_id를 기반으로 User 테이블에서 사용자 객체를 찾아서 (User, None) 형식으로 반환한다.
     """
     access_token = request.COOKIES.get("access_token")
@@ -461,7 +461,7 @@ def authenticate_token(request):
             new_access = refresh.access_token
 
             response = JsonResponse(
-                {"message": "Token refreshed successfully."}, status=200
+                {"message": "Token refreshed successfully."}, status=401
             )
             response.set_cookie(
                 key="access_token",
@@ -485,7 +485,7 @@ def authenticate_token(request):
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        return None, JsonResponse({"error": "User not found"}, status=404)
+        return None, JsonResponse({"error": "User not found"}, status=401)
     return user, None
 
 
