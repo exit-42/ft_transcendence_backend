@@ -539,3 +539,42 @@ def logout(request):
     if refresh_token:
         response.delete_cookie("refresh_token", path="/")
     return response
+
+
+@api_view(["GET"])
+def search_user_by_nickname(request):
+    """
+    @brief nickname을 통해 유저를 검색하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 유저 발견 O : 유저데이터 반환(200)
+        - 유저 발견 X : 에러메시지(404)
+        - 에러 발생 : 에러메시지(400 or 500)
+
+    @details 특정 닉네임을 가진 유저를 탐색하여 해당 유저의 데이터를 반환한다.
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        target = request.GET.get("name")
+        if not target:
+            return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+        try:
+            target_user = User.objects.get(nickname=target)
+            user_data = {
+                "nickname": target_user.nickname,
+                "imagePath": target_user.imagePath,
+                "winCnt": target_user.winCnt,
+                "loseCnt": target_user.loseCnt,
+            }
+            return JsonResponse(user_data, status=200)
+        except User.DoesNotExist:
+            return JsonResponse({"message": "User not found"}, status=404)
+
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
