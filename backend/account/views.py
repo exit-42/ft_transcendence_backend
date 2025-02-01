@@ -489,7 +489,7 @@ def authenticate_token(request):
     return user, None
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 def login(request):
     """
     @brief JWT를 통해 유저 데이터를 불러오는 함수
@@ -520,7 +520,7 @@ def login(request):
         return JsonResponse({"message": str(e)}, status=500)
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 def logout(request):
     """
     @brief 쿠키에 저장된 JWT를 삭제하는 함수
