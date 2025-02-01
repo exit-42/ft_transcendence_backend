@@ -56,7 +56,7 @@ def callback(request):
     if not code:
         return JsonResponse(
             {
-                "error": "No authorization code in request",
+                "message": "No authorization code in request",
             },
             status=400,
         )
@@ -109,7 +109,7 @@ def callback(request):
     else:
         return JsonResponse(
             {
-                "error": "Token Request Failed",
+                "message": "Token Request Failed",
             },
             status=token_response.status_code,
         )
@@ -200,15 +200,15 @@ def get_local_auth_token(request):
         local_password = data.get("password")
         if not local_id or not local_password:
             return JsonResponse(
-                {"error": "Please provide id and password. Both are required."},
+                {"message": "Please provide id and password. Both are required."},
                 status=400,
             )
         try:
             local_auth = LocalAuth.objects.get(localId=local_id)
         except LocalAuth.DoesNotExist:
-            return JsonResponse({"error": "id not exist."}, status=404)
+            return JsonResponse({"message": "id not exist."}, status=404)
         if not check_password(local_password, local_auth.localPassword):
-            return JsonResponse({"error": "wrong password."}, status=401)
+            return JsonResponse({"message": "wrong password."}, status=401)
         user = local_auth.user
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
@@ -234,10 +234,10 @@ def get_local_auth_token(request):
         return response
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 @api_view(["GET"])
@@ -256,16 +256,16 @@ def check_local_auth_id(request):
     try:
         local_id = request.GET.get("id")
         if not local_id:
-            return JsonResponse({"error": "ID not provided."}, status=400)
+            return JsonResponse({"message": "ID not provided."}, status=400)
 
         if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"error": "ID already in use"}, status=409)
+            return JsonResponse({"message": "ID already in use"}, status=409)
         else:
             return JsonResponse(
                 {"message": "ID is available", "id": local_id}, status=200
             )
     except Exception as e:
-        return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+        return JsonResponse({"message": f"Server error: {str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -292,7 +292,7 @@ def send_authentication_email(request):
         user_email = data.get("email")
 
         if not user_email:
-            return JsonResponse({"error": "Email is required."}, status=400)
+            return JsonResponse({"message": "Email is required."}, status=400)
 
         random_code = str(random.randint(10000, 99999))
         request.session["authenticate_code"] = random_code
@@ -310,10 +310,10 @@ def send_authentication_email(request):
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -340,31 +340,31 @@ def authenticate_code(request):
         authenticate_code = data.get("code")
 
         if not authenticate_email:
-            return JsonResponse({"error": "Email is required."}, status=400)
+            return JsonResponse({"message": "Email is required."}, status=400)
 
         if not authenticate_code:
-            return JsonResponse({"error": "Code is required."}, status=400)
+            return JsonResponse({"message": "Code is required."}, status=400)
 
         stored_code = request.session.get("authenticate_code")
         stored_email = request.session.get("authenticate_email")
 
         if not stored_code or not stored_email:
             return JsonResponse(
-                {"error": "Session data is missing or expired."}, status=400
+                {"message": "Session data is missing or expired."}, status=400
             )
 
         if stored_code == authenticate_code and stored_email == authenticate_email:
             request.session["is_authenticated"] = True
             return JsonResponse({"message": "Authentication successful."}, status=200)
         else:
-            return JsonResponse({"error": "Invalid code or email."}, status=400)
+            return JsonResponse({"message": "Invalid code or email."}, status=400)
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -392,17 +392,17 @@ def local_auth_sign_up(request):
         user_email = data.get("email")
 
         if not local_id or not local_password or not user_email:
-            return JsonResponse({"error": "All fields are required."}, status=400)
+            return JsonResponse({"message": "All fields are required."}, status=400)
 
         if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"error": "ID already in use"}, status=409)
+            return JsonResponse({"message": "ID already in use"}, status=409)
 
         stored_email = request.session.get("authenticate_email")
         is_authenticated = request.session.get("is_authenticated")
 
         if stored_email != user_email or not is_authenticated:
             return JsonResponse(
-                {"error": "Email verification is required."}, status=403
+                {"message": "Email verification is required."}, status=403
             )
         random_nickname = generate_random_nickname()
         user = User.objects.create(
@@ -421,10 +421,10 @@ def local_auth_sign_up(request):
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 def authenticate_token(request):
@@ -450,7 +450,7 @@ def authenticate_token(request):
     refresh_token = request.COOKIES.get("refresh_token")
 
     if not access_token or not refresh_token:
-        return None, JsonResponse({"error": "JWTs are missing."}, status=401)
+        return None, JsonResponse({"message": "JWTs are missing."}, status=401)
 
     try:
         access_payload = AccessToken(access_token)
@@ -475,17 +475,17 @@ def authenticate_token(request):
             return None, response
         except TokenError as e:
             return None, JsonResponse(
-                {"error": "Invalid or expired refresh token"}, status=401
+                {"message": "Invalid or expired refresh token"}, status=401
             )
 
     if not user_id:
         return None, JsonResponse(
-            {"error": "Invalid token payload: user_id missing"}, status=401
+            {"message": "Invalid token payload: user_id missing"}, status=401
         )
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        return None, JsonResponse({"error": "User not found"}, status=401)
+        return None, JsonResponse({"message": "User not found"}, status=401)
     return user, None
 
 
@@ -517,7 +517,7 @@ def login(request):
         return JsonResponse(user_data, status=200)
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"message": str(e)}, status=500)
 
 
 @api_view(["GET"])
@@ -546,4 +546,4 @@ def logout(request):
         return response
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"message": str(e)}, status=500)
