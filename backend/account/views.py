@@ -3,10 +3,11 @@ from django.conf import settings
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework.decorators import api_view
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
+from rest_framework_simplejwt.exceptions import TokenError
 
 User = get_user_model()
 
@@ -55,7 +56,7 @@ def callback(request):
     if not code:
         return JsonResponse(
             {
-                "error": "No authorization code in request",
+                "message": "No authorization code in request",
             },
             status=400,
         )
@@ -108,7 +109,7 @@ def callback(request):
     else:
         return JsonResponse(
             {
-                "error": "Token Request Failed",
+                "message": "Token Request Failed",
             },
             status=token_response.status_code,
         )
@@ -199,15 +200,15 @@ def get_local_auth_token(request):
         local_password = data.get("password")
         if not local_id or not local_password:
             return JsonResponse(
-                {"error": "Please provide id and password. Both are required."},
+                {"message": "Please provide id and password. Both are required."},
                 status=400,
             )
         try:
             local_auth = LocalAuth.objects.get(localId=local_id)
         except LocalAuth.DoesNotExist:
-            return JsonResponse({"error": "id not exist."}, status=404)
+            return JsonResponse({"message": "id not exist."}, status=404)
         if not check_password(local_password, local_auth.localPassword):
-            return JsonResponse({"error": "wrong password."}, status=401)
+            return JsonResponse({"message": "wrong password."}, status=401)
         user = local_auth.user
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
@@ -233,10 +234,10 @@ def get_local_auth_token(request):
         return response
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 @api_view(["GET"])
@@ -255,16 +256,16 @@ def check_local_auth_id(request):
     try:
         local_id = request.GET.get("id")
         if not local_id:
-            return JsonResponse({"error": "ID not provided."}, status=400)
+            return JsonResponse({"message": "ID not provided."}, status=400)
 
         if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"error": "ID already in use"}, status=409)
+            return JsonResponse({"message": "ID already in use"}, status=409)
         else:
             return JsonResponse(
                 {"message": "ID is available", "id": local_id}, status=200
             )
     except Exception as e:
-        return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+        return JsonResponse({"message": f"Server error: {str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -291,7 +292,7 @@ def send_authentication_email(request):
         user_email = data.get("email")
 
         if not user_email:
-            return JsonResponse({"error": "Email is required."}, status=400)
+            return JsonResponse({"message": "Email is required."}, status=400)
 
         random_code = str(random.randint(10000, 99999))
         request.session["authenticate_code"] = random_code
@@ -309,10 +310,10 @@ def send_authentication_email(request):
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -339,31 +340,31 @@ def authenticate_code(request):
         authenticate_code = data.get("code")
 
         if not authenticate_email:
-            return JsonResponse({"error": "Email is required."}, status=400)
+            return JsonResponse({"message": "Email is required."}, status=400)
 
         if not authenticate_code:
-            return JsonResponse({"error": "Code is required."}, status=400)
+            return JsonResponse({"message": "Code is required."}, status=400)
 
         stored_code = request.session.get("authenticate_code")
         stored_email = request.session.get("authenticate_email")
 
         if not stored_code or not stored_email:
             return JsonResponse(
-                {"error": "Session data is missing or expired."}, status=400
+                {"message": "Session data is missing or expired."}, status=400
             )
 
         if stored_code == authenticate_code and stored_email == authenticate_email:
             request.session["is_authenticated"] = True
             return JsonResponse({"message": "Authentication successful."}, status=200)
         else:
-            return JsonResponse({"error": "Invalid code or email."}, status=400)
+            return JsonResponse({"message": "Invalid code or email."}, status=400)
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -391,17 +392,17 @@ def local_auth_sign_up(request):
         user_email = data.get("email")
 
         if not local_id or not local_password or not user_email:
-            return JsonResponse({"error": "All fields are required."}, status=400)
+            return JsonResponse({"message": "All fields are required."}, status=400)
 
         if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"error": "ID already in use"}, status=409)
+            return JsonResponse({"message": "ID already in use"}, status=409)
 
         stored_email = request.session.get("authenticate_email")
         is_authenticated = request.session.get("is_authenticated")
 
         if stored_email != user_email or not is_authenticated:
             return JsonResponse(
-                {"error": "Email verification is required."}, status=403
+                {"message": "Email verification is required."}, status=403
             )
         random_nickname = generate_random_nickname()
         user = User.objects.create(
@@ -420,7 +421,121 @@ def local_auth_sign_up(request):
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"error": "Please send the data in JSON format."}, status=400
+            {"message": "Please send the data in JSON format."}, status=400
         )
     except Exception as e:
-        return JsonResponse({"error": f"{str(e)}"}, status=500)
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
+
+
+def authenticate_token(request):
+    """
+    @brief JWT 검증 함수
+
+    @param request 그대로 넘겨줌.
+
+    @return
+        - 성공 : (유저 객체, None) 형식으로 반환
+        - 실패 (access_token 만료) : (None, 토큰 갱신 메시지) 형식으로 반환
+        - 실패 (refresh_token 만료 or 유효하지 않은 JWT) : (None, 실패 메시지) 형식으로 반환
+
+    @details
+    request의 쿠키에서 access_token과 refresh_token을 가져온다.
+    access_token을 디코딩하여 user_id를 추출한다.
+    access_token의 payload에서 user_id(pk)를 가져온다.
+        - access_token이 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 메시지) 형식으로 반환한다.
+        - refresh_token이 만료되었거나 access_token이 유효하지 않으면 (None, 실패 메시지) 형식으로 반환한다.
+    추출된 user_id를 기반으로 User 테이블에서 사용자 객체를 찾아서 (User, None) 형식으로 반환한다.
+    """
+    access_token = request.COOKIES.get("access_token")
+    refresh_token = request.COOKIES.get("refresh_token")
+
+    if not access_token or not refresh_token:
+        return None, JsonResponse({"message": "JWTs are missing."}, status=401)
+
+    try:
+        access_payload = AccessToken(access_token)
+        user_id = access_payload.get("user_id")
+    except TokenError:
+        try:
+            refresh = RefreshToken(refresh_token)
+            new_access = refresh.access_token
+
+            response = JsonResponse({"message": "Token refreshed."}, status=452)
+            response.set_cookie(
+                key="access_token",
+                value=str(new_access),
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+                path="/",
+            )
+            return None, response
+        except TokenError as e:
+            return None, JsonResponse(
+                {"message": "Invalid or expired refresh token"}, status=401
+            )
+
+    if not user_id:
+        return None, JsonResponse(
+            {"message": "Invalid token payload: user_id missing"}, status=401
+        )
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None, JsonResponse({"message": "User not found"}, status=401)
+    return user, None
+
+
+@api_view(["POST"])
+def login(request):
+    """
+    @brief JWT를 통해 유저 데이터를 불러오는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 유저 데이터 JsonResponse 형식으로 반환
+        - 실패 : 에러메시지와 상태코드 JsonResponse 형식으로 반환
+
+    @details JWT 검증 함수(authenticate_token)의 결과가 유효하면 유저 데이터를 반환한다.
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        user_data = {
+            "username": user.username,
+            "imagePath": user.imagePath,
+            "nickname": user.nickname,
+            "winCnt": user.winCnt,
+            "loseCnt": user.loseCnt,
+        }
+        return JsonResponse(user_data, status=200)
+
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
+
+
+@api_view(["POST"])
+def logout(request):
+    """
+    @brief 쿠키에 저장된 JWT를 삭제하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return 로그아웃 성공메시지 JsonResponse 형식으로 반환
+
+    @details 유저 브라우저의 쿠키에 저장된 JWT를 삭제한다.
+    """
+    response = JsonResponse({"message": "logged out successfully."}, status=200)
+
+    access_token = request.COOKIES.get("access_token")
+    refresh_token = request.COOKIES.get("refresh_token")
+
+    if access_token:
+        response.delete_cookie("access_token", path="/")
+    if refresh_token:
+        response.delete_cookie("refresh_token", path="/")
+    return response
