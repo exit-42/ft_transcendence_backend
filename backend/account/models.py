@@ -65,3 +65,27 @@ class LocalAuth(models.Model):
 
     def __str__(self):
         return self.localId
+
+
+class Follow(models.Model):
+    """
+    @brief Follow 모델 설정
+    @details 유저의 Follow 관리
+
+    @followId Follow 중간테이블의 Primary key
+    @userAId userB를 팔로우 하는 userA의 아이디
+    @userBId userA가 팔로우 하는 userB의 아이디
+    @createdAt follow 관계가 생성된 시점
+    """
+
+    followId = models.AutoField(primary_key=True)
+    userAId = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="user_a_id"
+    )
+    userBId = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="user_b_id"
+    )
+    createdAt = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.followId
