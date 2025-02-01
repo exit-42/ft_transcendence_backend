@@ -461,7 +461,7 @@ def authenticate_token(request):
             new_access = refresh.access_token
 
             response = JsonResponse(
-                {"message": "Token refreshed successfully."}, status=401
+                {"message": "Token refreshed."}, status=452
             )
             response.set_cookie(
                 key="access_token",
