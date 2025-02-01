@@ -460,9 +460,7 @@ def authenticate_token(request):
             refresh = RefreshToken(refresh_token)
             new_access = refresh.access_token
 
-            response = JsonResponse(
-                {"message": "Token refreshed."}, status=452
-            )
+            response = JsonResponse({"message": "Token refreshed."}, status=452)
             response.set_cookie(
                 key="access_token",
                 value=str(new_access),
@@ -527,23 +525,17 @@ def logout(request):
 
     @param request Django의 HTTP 요청 객체
 
-    @return
-        - 성공 : 유저의 쿠키에 저장된 JWT를 삭제, 로그아웃 성공메시지 JsonResponse 형식으로 반환
-        - 실패 : 에러메시지와 상태코드 JsonResponse 형식으로 반환
+    @return 로그아웃 성공메시지 JsonResponse 형식으로 반환
 
-    @details JWT 검증 함수(authenticate_token)의 결과가 유효하면 유저 데이터를 반환한다.
+    @details 유저 브라우저의 쿠키에 저장된 JWT를 삭제한다.
     """
-    try:
-        user, token_response = authenticate_token(request)
-        if token_response:
-            return token_response
+    response = JsonResponse({"message": "logged out successfully."}, status=200)
 
-        response = JsonResponse(
-            {"message": "{user.nickname} logged out successfully."}, status=200
-        )
+    access_token = request.COOKIES.get("access_token")
+    refresh_token = request.COOKIES.get("refresh_token")
+
+    if access_token:
         response.delete_cookie("access_token", path="/")
+    if refresh_token:
         response.delete_cookie("refresh_token", path="/")
-        return response
-
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=500)
+    return response
