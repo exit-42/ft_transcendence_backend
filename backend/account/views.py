@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
 from rest_framework_simplejwt.exceptions import TokenError
+from django.views.generic import View
 
 User = get_user_model()
 
@@ -541,40 +542,47 @@ def logout(request):
     return response
 
 
-@api_view(["GET"])
-def search_user_by_nickname(request):
-    """
-    @brief nickname을 통해 유저를 검색하는 함수
+class followView(View):
+    def get(self, request):
+        """
+        @brief nickname을 통해 유저를 검색하는 함수
 
-    @param request Django의 HTTP 요청 객체
+        @param request Django의 HTTP 요청 객체
 
-    @return
-        - 유저 발견 O : 유저데이터 반환(200)
-        - 유저 발견 X : 에러메시지(404)
-        - 에러 발생 : 에러메시지(400 or 500)
+        @return
+            - 유저 발견 O : 유저 데이터 반환, 유저 발견 성공 메시지(200)
+            - 유저 발견 X : 유저 발견 실패 메시지(404)
+            - 에러 발생 : 에러메시지(400 or 500)
 
-    @details 특정 닉네임을 가진 유저를 탐색하여 해당 유저의 데이터를 반환한다.
-    """
-    try:
-        user, token_response = authenticate_token(request)
-        if token_response:
-            return token_response
-
-        target = request.GET.get("name")
-        if not target:
-            return JsonResponse({"message": "Nickname not provided"}, status=400)
-
+        @details
+        특정 문자열을 포함한 닉네임을 가진 유저들을 탐색한다.
+        해당 유저들의 데이터를 반환한다.
+        """
         try:
-            target_user = User.objects.get(nickname=target)
-            user_data = {
-                "nickname": target_user.nickname,
-                "imagePath": target_user.imagePath,
-                "winCnt": target_user.winCnt,
-                "loseCnt": target_user.loseCnt,
-            }
-            return JsonResponse(user_data, status=200)
-        except User.DoesNotExist:
-            return JsonResponse({"message": "User not found"}, status=404)
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
 
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=500)
+            word = request.GET.get("word")
+            if not word:
+                return JsonResponse({"message": "Word not provided"}, status=400)
+
+            followings = User.objects.filter(nickname__icontains=word)
+
+            if not followings.exists():
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            following_list = [
+                {
+                    "nickname": following.nickname,
+                    "imagePath": following.imagePath,
+                }
+                for following in followings
+            ]
+
+            return JsonResponse(
+                {"message": "User found", "data": following_list}, status=200
+            )
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
