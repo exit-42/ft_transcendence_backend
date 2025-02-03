@@ -9,6 +9,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.generic import View
+from django.middleware.csrf import get_token
 
 User = get_user_model()
 
@@ -87,7 +88,7 @@ def callback(request):
         user, created = get_or_create_user_oauth(intra_id, user_email, user_image_path)
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-        response = HttpResponseRedirect(os.environ.get("SERVER_URL"))
+        response = HttpResponseRedirect(os.environ.get("FRONT_SERVER_URL"))
         response.set_cookie(
             key="access_token",
             value=str(access),
@@ -408,7 +409,7 @@ def local_auth_sign_up(request):
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath=os.environ.get("SERVER_URL") + "/static/image/default.jpeg",
+            imagePath=os.environ.get("FRONT_SERVER_URL") + "/static/image/default.jpeg",
             nickname=random_nickname,
         )
         hashed_password = make_password(local_password)
@@ -546,6 +547,13 @@ def logout(request):
     if refresh_token:
         response.delete_cookie("refresh_token", path="/")
     return response
+
+
+def get_csrf_token(request):
+    """
+    @brief 요청할 때마다 새로운 CSRF 토큰을 반환하는 API
+    """
+    return JsonResponse({"csrfToken": get_token(request)})
 
 
 class followView(View):
