@@ -177,6 +177,8 @@ CORS_ALLOW_ALL_ORIGINS = [
     os.environ.get("FRONT_SERVER_URL"),
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_METHODS = [
     "GET",
     "POST",
@@ -192,15 +194,13 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # CSRF
-CSRF_TRUSTED_ORIGINS = [
-    os.environ.get("BACK_SERVER_URL"),
-    os.environ.get("FRONT_SERVER_URL"),
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
 CSRF_COOKIE_HTTPONLY = False
 
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False
 
 CSRF_COOKIE_SAMESITE = "Lax"
+
+CSRF_TRUSTED_ORIGINS = [
+    os.environ.get("FRONT_SERVER_URL"),
+    os.environ.get("BACK_SERVER_URL"),
+]

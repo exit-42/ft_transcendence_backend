@@ -59,5 +59,5 @@ class FollowAdmin(admin.ModelAdmin):
     @search_fields 검색할 수 있는 필드
     """
 
-    list_display = ("followId", "userAId", "userBId", "createdAt")
-    search_fields = ("userAId__nickname", "userBId__nickname")
+    list_display = ("followId", "userA", "userB", "createdAt")
+    search_fields = ("userA__nickname", "userB__nickname")
