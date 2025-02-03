@@ -172,7 +172,10 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SESSION_COOKIE_AGE = 300
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = [
+    os.environ.get("BACK_SERVER_URL"),
+    os.environ.get("FRONT_SERVER_URL"),
+]
 
 CORS_ALLOW_METHODS = [
     "GET",
@@ -187,3 +190,17 @@ CORS_ALLOW_HEADERS = [
     "authorization",
     "x-csrftoken",
 ]
+
+# CSRF
+CSRF_TRUSTED_ORIGINS = [
+    os.environ.get("BACK_SERVER_URL"),
+    os.environ.get("FRONT_SERVER_URL"),
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_COOKIE_HTTPONLY = False
+
+CSRF_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "Lax"
