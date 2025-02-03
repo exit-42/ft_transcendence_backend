@@ -10,12 +10,9 @@ from django.core.mail import send_mail
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.generic import View
 from django.middleware.csrf import get_token
-<<<<<<< HEAD
-=======
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
->>>>>>> temp-detached
 
 User = get_user_model()
 
