@@ -643,10 +643,10 @@ class followView(View):
                     {"message": "You cannot follow yourself"}, status=403
                 )
 
-            if Follow.objects.filter(userAId=user, userBId=target_user).exists():
+            if Follow.objects.filter(userA=user, userB=target_user).exists():
                 return JsonResponse({"message": "Already exist"}, status=409)
 
-            Follow.objects.create(userAId=user, userBId=target_user)
+            Follow.objects.create(userA=user, userB=target_user)
             return JsonResponse({"message": "Follow complete"}, status=201)
 
         except Exception as e:
@@ -680,7 +680,7 @@ class followView(View):
             except User.DoesNotExist:
                 return JsonResponse({"message": "User not found"}, status=404)
 
-            follow_relation = Follow.objects.filter(userAId=user, userBId=target_user)
+            follow_relation = Follow.objects.filter(userA=user, userB=target_user)
 
             if not follow_relation.exists():
                 return JsonResponse(
@@ -713,12 +713,12 @@ def get_follows(request):
         if token_response:
             return token_response
 
-        follows = Follow.objects.filter(userAId=user)
+        follows = Follow.objects.filter(userA=user)
 
         follow_list = []
         for follow in follows:
-            if follow.userAId == user:
-                follow_user = follow.userBId
+            if follow.userA == user:
+                follow_user = follow.userB
 
             follow_list.append(
                 {"nickname": follow_user.nickname, "imagePath": follow_user.imagePath}
