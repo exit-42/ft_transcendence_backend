@@ -652,6 +652,50 @@ class followView(View):
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
 
+    @method_decorator(csrf_protect)
+    def delete(self, request):
+        """
+        @brief 특정 유저의 팔로우를 취소하는 함수
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - 팔로우 취소 성공 : "Unfollow complete" (200)
+            - 팔로우가 존재하지 않는 경우 : "Follow relation not found" (404)
+            - 기타 예외 발생 : 에러 메시지 (500)
+        """
+        try:
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
+
+            body = json.loads(request.body)
+            nickname = body.get("name")
+
+            if not nickname:
+                return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+            try:
+                target_user = User.objects.get(nickname=nickname)
+            except User.DoesNotExist:
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            follow_relation = Follow.objects.filter(userAId=user, userBId=target_user)
+
+            if not follow_relation.exists():
+                return JsonResponse(
+                    {"message": "Follow relation not found"}, status=404
+                )
+
+            follow_relation.delete()
+            return JsonResponse({"message": "Unfollow complete"}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
+
 
 @api_view(["GET"])
 def get_follows(request):
