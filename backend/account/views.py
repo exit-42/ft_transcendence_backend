@@ -713,7 +713,7 @@ def get_follows(request):
         if token_response:
             return token_response
 
-        follows = Follow.objects.filter(userA=user)
+        follows = user.following.all()
 
         follow_list = []
         for follow in follows:
