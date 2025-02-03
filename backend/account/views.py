@@ -651,3 +651,34 @@ class followView(View):
 
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
+
+
+@api_view(["GET"])
+def get_follows(request):
+    """
+    @brief 팔로우 하고있는 유저들의 데이터를 요청하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 팔로우 하고있는 유저들의 데이터 (200)
+        - 기타 예외 발생 : 에러 메시지 (500)
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        follows = Follow.objects.filter(userAId=user)
+
+        follow_list = []
+        for follow in follows:
+            if follow.userAId == user:
+                follow_user = follow.userBId
+
+            follow_list.append(
+                {"nickname": follow_user.nickname, "imagePath": follow_user.imagePath}
+            )
+        return JsonResponse({"data": follow_list}, status=200)
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
