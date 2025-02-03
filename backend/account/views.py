@@ -10,10 +10,13 @@ from django.core.mail import send_mail
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.generic import View
 from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
 
 User = get_user_model()
 
-from account.models import OAuth, LocalAuth
+from account.models import OAuth, LocalAuth, Follow
 
 
 def get_oauth_token(request):
@@ -549,9 +552,14 @@ def logout(request):
     return response
 
 
+@ensure_csrf_cookie
 def get_csrf_token(request):
     """
     @brief 요청할 때마다 새로운 CSRF 토큰을 반환하는 API
+
+    @param request Django의 HTTP 요청 객체
+
+    @return CSRF 토큰을 포함한 JSON 응답
     """
     return JsonResponse({"csrfToken": get_token(request)})
 
@@ -570,7 +578,6 @@ class followView(View):
 
         @details
         특정 문자열을 포함한 닉네임을 가진 유저들을 탐색한다.
-        해당 유저들의 데이터를 반환한다.
         """
         try:
             user, token_response = authenticate_token(request)
@@ -597,6 +604,50 @@ class followView(View):
             return JsonResponse(
                 {"message": "User found", "data": following_list}, status=200
             )
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
+
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """
+        @brief 특정 유저를 팔로우하는 함수
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - 팔로우 성공 : "Follow complete" (201)
+            - 자기 자신을 팔로우할 경우 : "You cannot follow yourself" (403)
+            - 이미 팔로우한 경우 : "Already exist" (409)
+            - 유저가 존재하지 않는 경우 : "User not found" (404)
+            - 기타 예외 발생 : 에러 메시지 (500)
+        """
+        try:
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
+
+            body = json.loads(request.body)
+            nickname = body.get("name")
+
+            if not nickname:
+                return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+            try:
+                target_user = User.objects.get(nickname=nickname)
+            except User.DoesNotExist:
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            if user == target_user:
+                return JsonResponse(
+                    {"message": "You cannot follow yourself"}, status=403
+                )
+
+            if Follow.objects.filter(userAId=user, userBId=target_user).exists():
+                return JsonResponse({"message": "Already exist"}, status=409)
+
+            Follow.objects.create(userAId=user, userBId=target_user)
+            return JsonResponse({"message": "Follow complete"}, status=201)
 
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
