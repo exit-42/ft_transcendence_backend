@@ -13,6 +13,7 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 User = get_user_model()
 
@@ -129,7 +130,7 @@ def generate_random_nickname():
     @return 다른 유저와 중복되지 않는 랜덤 생성된 유저의 닉네임
 
     @details
-    10000 부터 99999 까지의 임의의 수를 무작위로 골라서 'USER#' 문자열 뒤에 붙인다.
+    10000 부터 99999 까지의 임의의 수를 무작위로 골라서 '#' 문자열 뒤에 붙인다.
     User 테이블을 조회하여 랜덤 생성된 닉네임의 중복여부를 확인한다.
         - 중복되었다면 새로운 랜덤 닉네임을 다시 생성한다.
         - 중복되지 않았다면 해당 닉네임을 리턴한다.
@@ -137,7 +138,7 @@ def generate_random_nickname():
     """
     while True:
         random_number = f"{random.randint(10000, 99999):05}"
-        nickname = f"USER#{random_number}"
+        nickname = f"#{random_number}"
         if not User.objects.filter(nickname=nickname).exists():
             return nickname
 
@@ -588,27 +589,27 @@ class followView(View):
             if not word:
                 return JsonResponse({"message": "Word not provided"}, status=400)
 
-            followings = User.objects.filter(nickname__icontains=word)
+            users = User.objects.filter(nickname__icontains=word)
 
-            if not followings.exists():
+            if not users.exists():
                 return JsonResponse({"message": "User not found"}, status=404)
 
-            following_list = [
+            user_list = [
                 {
-                    "nickname": following.nickname,
-                    "imagePath": following.imagePath,
+                    "nickname": searched_user.nickname,
+                    "imagePath": searched_user.imagePath,
                 }
-                for following in followings
+                for searched_user in users
             ]
 
             return JsonResponse(
-                {"message": "User found", "data": following_list}, status=200
+                {"message": "User found", "data": user_list}, status=200
             )
 
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
 
-    @method_decorator(csrf_protect)
+    @csrf_exempt
     def post(self, request):
         """
         @brief 특정 유저를 팔로우하는 함수
@@ -652,7 +653,7 @@ class followView(View):
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
 
-    @method_decorator(csrf_protect)
+    @csrf_exempt
     def delete(self, request):
         """
         @brief 특정 유저의 팔로우를 취소하는 함수
