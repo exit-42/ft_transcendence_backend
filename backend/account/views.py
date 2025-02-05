@@ -181,24 +181,24 @@ def get_or_create_user_oauth(intra_id, user_email, user_image_path):
 
 
 @api_view(["POST"])
-def get_local_auth_token(request):
+def signin_local_auth(request):
     """
-    @brief LocalAuth 회원에게 JWT를 발급하는 함수
+    @brief LocalAuth를 통해 로그인 하는 함수
 
-    @param request Django의 HTTP 요청 객체
+    @param
+        - local_id : LocalAuth 로그인에 필요한 아이디
+        - local_password : LocalAuth 로그인에 필요한 비밀번호
 
     @return
-        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지로 리디렉션
-        - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
+        - 아이디, 비밀번호 일치 : "Email has been sent.", user_email (200)
+        - 아이디 발견 실패 : "id not exist." (404)
+        - 비밀번호 불일치 : "wrong password." (401)
+        - 기타 예외 발생 : 에러 메시지 (500)
 
     @details
-    Request의 바디에서 id와 password를 추출한다.
-    LocalAuth 테이블에서 입력받은 id와 동일한 localId를 가진 객체가 존재하는지 확인한다.
-    - 일치하는 객체가 없는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
-    - 일치하는 객체가 있는 경우 입력받은 password와 localPassword가 일치하는지 확인한다.
-        - 일치하는 객체가 없는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
-        - 일치하는 객체가 있는 경우 유저 객체를 통해 JWT를 생성하여 사용자의 클라이언트 쿠키에 access_token과 refresh_token을 저장한다.
-          성공메시지를 JsonResponse 형태로 리턴한다.
+        - 입력받은 아이디와 동일한 아이디를 가진 객체가 LocalAuth에 존재하는지 확인합니다.
+        - 특정 객체가 LocalAuth에 존재한다면 입력받은 비밀번호가 해당 객체의 비밀번호와 일치하는지 확인합니다.
+        - 아이디와 비밀번호가 모두 일치한다면 해당 유저의 등록된 이메일로 확인 이메일(2FA)을 전송합니다.
     """
     try:
         data = json.loads(request.body)
@@ -214,30 +214,89 @@ def get_local_auth_token(request):
         except LocalAuth.DoesNotExist:
             return JsonResponse({"message": "id not exist."}, status=404)
         if not check_password(local_password, local_auth.localPassword):
+            request.session.pop("user_id", None)
             return JsonResponse({"message": "wrong password."}, status=401)
         user = local_auth.user
-        refresh = RefreshToken.for_user(user)
-        access = refresh.access_token
-        response = JsonResponse({"message": "success"}, status=200)
-        response.set_cookie(
-            key="access_token",
-            value=str(access),
-            httponly=True,
-            secure=True,
-            samesite="Lax",
-            max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-            path="/",
+        random_code = str(random.randint(10000, 99999))
+        request.session["user_id"] = user.id
+        request.session["authenticate_code"] = random_code
+        try:
+            send_mail(
+                subject="Your 2FA Code",
+                message=f"Your 2FA code is: {random_code}",
+                from_email=os.environ.get("EMAIL_HOST_USER"),
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return JsonResponse({"message": "Failed to send email"}, status=500)
+        return JsonResponse(
+            {"message": "Email has been sent.", "email": user.email}, status=200
         )
-        response.set_cookie(
-            key="refresh_token",
-            value=str(refresh),
-            httponly=True,
-            secure=True,
-            samesite="Lax",
-            max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
-            path="/",
-        )
-        return response
+    except Exception as e:
+        return JsonResponse({"message": f"{str(e)}"}, status=500)
+
+
+@api_view(["POST"])
+def get_local_auth_token(request):
+    """
+    @brief LocalAuth 로그인 할 때 2FA 인증을 처리하는 함수
+
+    @param
+        - code : 2FA 인증코드
+
+    @return
+        - 인증성공(토큰발급) : "success" (200)
+        - 세션 관련 에러 발생 : 에러 메시지 (4xx)
+        - 기타 예외 발생 : 에러 메시지 (500)
+    """
+    try:
+        data = json.loads(request.body)
+        authenticate_code = data.get("code")
+        if not authenticate_code:
+            return JsonResponse({"message": "Code is required."}, status=400)
+
+        stored_user_id = request.session.get("user_id")
+        stored_code = request.session.get("authenticate_code")
+        del request.session["user_id"]
+        del request.session["authenticate_code"]
+
+        if not stored_user_id or not stored_code:
+            return JsonResponse(
+                {"message": "Session data is missing or expired."}, status=400
+            )
+
+        if stored_code == authenticate_code:
+            try:
+                user = User.objects.get(id=stored_user_id)
+            except User.DoesNotExist:
+                return JsonResponse({"message": "User not found"}, status=401)
+
+            refresh = RefreshToken.for_user(user)
+            access = refresh.access_token
+            response = JsonResponse({"message": "success"}, status=200)
+
+            response.set_cookie(
+                key="access_token",
+                value=str(access),
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+                path="/",
+            )
+            response.set_cookie(
+                key="refresh_token",
+                value=str(refresh),
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+                max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
+                path="/",
+            )
+            return response
+        else:
+            return JsonResponse({"message": "Invalid code or email."}, status=400)
     except json.JSONDecodeError:
         return JsonResponse(
             {"message": "Please send the data in JSON format."}, status=400
