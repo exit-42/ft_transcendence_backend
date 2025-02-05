@@ -13,4 +13,7 @@ urlpatterns = [
     path("local-auth/code/", views.authenticate_code),
     path("login/", views.login),
     path("logout/", views.logout),
+    path("csrf-token/", views.get_csrf_token),
+    path("follow/", views.followView.as_view()),
+    path("follows/", views.get_follows),
 ]

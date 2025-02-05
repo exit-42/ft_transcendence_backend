@@ -8,10 +8,16 @@ from rest_framework.decorators import api_view
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
 from rest_framework_simplejwt.exceptions import TokenError
+from django.views.generic import View
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 User = get_user_model()
 
-from account.models import OAuth, LocalAuth
+from account.models import OAuth, LocalAuth, Follow
 
 
 def get_oauth_token(request):
@@ -86,7 +92,7 @@ def callback(request):
         user, created = get_or_create_user_oauth(intra_id, user_email, user_image_path)
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-        response = HttpResponseRedirect(os.environ.get("SERVER_URL"))
+        response = HttpResponseRedirect(os.environ.get("FRONT_SERVER_URL"))
         response.set_cookie(
             key="access_token",
             value=str(access),
@@ -124,7 +130,7 @@ def generate_random_nickname():
     @return 다른 유저와 중복되지 않는 랜덤 생성된 유저의 닉네임
 
     @details
-    10000 부터 99999 까지의 임의의 수를 무작위로 골라서 'USER#' 문자열 뒤에 붙인다.
+    10000 부터 99999 까지의 임의의 수를 무작위로 골라서 '#' 문자열 뒤에 붙인다.
     User 테이블을 조회하여 랜덤 생성된 닉네임의 중복여부를 확인한다.
         - 중복되었다면 새로운 랜덤 닉네임을 다시 생성한다.
         - 중복되지 않았다면 해당 닉네임을 리턴한다.
@@ -132,7 +138,7 @@ def generate_random_nickname():
     """
     while True:
         random_number = f"{random.randint(10000, 99999):05}"
-        nickname = f"USER#{random_number}"
+        nickname = f"#{random_number}"
         if not User.objects.filter(nickname=nickname).exists():
             return nickname
 
@@ -407,7 +413,7 @@ def local_auth_sign_up(request):
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath=os.environ.get("SERVER_URL") + "/static/image/default.jpeg",
+            imagePath=os.environ.get("FRONT_SERVER_URL") + "/static/image/default.jpeg",
             nickname=random_nickname,
         )
         hashed_password = make_password(local_password)
@@ -442,25 +448,31 @@ def authenticate_token(request):
     request의 쿠키에서 access_token과 refresh_token을 가져온다.
     access_token을 디코딩하여 user_id를 추출한다.
     access_token의 payload에서 user_id(pk)를 가져온다.
-        - access_token이 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 메시지) 형식으로 반환한다.
+        - access_token이 없거나 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 메시지) 형식으로 반환한다.
         - refresh_token이 만료되었거나 access_token이 유효하지 않으면 (None, 실패 메시지) 형식으로 반환한다.
     추출된 user_id를 기반으로 User 테이블에서 사용자 객체를 찾아서 (User, None) 형식으로 반환한다.
     """
     access_token = request.COOKIES.get("access_token")
     refresh_token = request.COOKIES.get("refresh_token")
 
-    if not access_token or not refresh_token:
+    if not access_token and not refresh_token:
         return None, JsonResponse({"message": "JWTs are missing."}, status=401)
 
-    try:
-        access_payload = AccessToken(access_token)
-        user_id = access_payload.get("user_id")
-    except TokenError:
+    user_id = None
+
+    if access_token:
+        try:
+            access_payload = AccessToken(access_token)
+            user_id = access_payload.get("user_id")
+        except TokenError:
+            pass
+
+    if not user_id:
         try:
             refresh = RefreshToken(refresh_token)
             new_access = refresh.access_token
 
-            response = JsonResponse({"message": "Token refreshed."}, status=452)
+            response = JsonResponse({"message": "Token refreshed"}, status=452)
             response.set_cookie(
                 key="access_token",
                 value=str(new_access),
@@ -471,19 +483,19 @@ def authenticate_token(request):
                 path="/",
             )
             return None, response
-        except TokenError as e:
+        except TokenError:
             return None, JsonResponse(
                 {"message": "Invalid or expired refresh token"}, status=401
             )
 
     if not user_id:
-        return None, JsonResponse(
-            {"message": "Invalid token payload: user_id missing"}, status=401
-        )
+        return None, JsonResponse({"message": "Invalid token payload"}, status=401)
+
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         return None, JsonResponse({"message": "User not found"}, status=401)
+
     return user, None
 
 
@@ -539,3 +551,179 @@ def logout(request):
     if refresh_token:
         response.delete_cookie("refresh_token", path="/")
     return response
+
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    """
+    @brief 요청할 때마다 새로운 CSRF 토큰을 반환하는 API
+
+    @param request Django의 HTTP 요청 객체
+
+    @return CSRF 토큰을 포함한 JSON 응답
+    """
+    return JsonResponse({"csrfToken": get_token(request)})
+
+
+class followView(View):
+    def get(self, request):
+        """
+        @brief nickname을 통해 유저를 검색하는 함수
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - 유저 발견 O : 유저 데이터 반환, 유저 발견 성공 메시지(200)
+            - 유저 발견 X : 유저 발견 실패 메시지(404)
+            - 에러 발생 : 에러메시지(400 or 500)
+
+        @details
+        특정 문자열을 포함한 닉네임을 가진 유저들을 탐색한다.
+        """
+        try:
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
+
+            word = request.GET.get("word")
+            if not word:
+                return JsonResponse({"message": "Word not provided"}, status=400)
+
+            users = User.objects.filter(nickname__icontains=word)
+
+            if not users.exists():
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            user_list = [
+                {
+                    "nickname": searched_user.nickname,
+                    "imagePath": searched_user.imagePath,
+                }
+                for searched_user in users
+            ]
+
+            return JsonResponse(
+                {"message": "User found", "data": user_list}, status=200
+            )
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
+
+    @csrf_exempt
+    def post(self, request):
+        """
+        @brief 특정 유저를 팔로우하는 함수
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - 팔로우 성공 : "Follow complete" (201)
+            - 자기 자신을 팔로우할 경우 : "You cannot follow yourself" (403)
+            - 이미 팔로우한 경우 : "Already exist" (409)
+            - 유저가 존재하지 않는 경우 : "User not found" (404)
+            - 기타 예외 발생 : 에러 메시지 (500)
+        """
+        try:
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
+
+            body = json.loads(request.body)
+            nickname = body.get("name")
+
+            if not nickname:
+                return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+            try:
+                target_user = User.objects.get(nickname=nickname)
+            except User.DoesNotExist:
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            if user == target_user:
+                return JsonResponse(
+                    {"message": "You cannot follow yourself"}, status=403
+                )
+
+            if Follow.objects.filter(userA=user, userB=target_user).exists():
+                return JsonResponse({"message": "Already exist"}, status=409)
+
+            Follow.objects.create(userA=user, userB=target_user)
+            return JsonResponse({"message": "Follow complete"}, status=201)
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
+
+    @csrf_exempt
+    def delete(self, request):
+        """
+        @brief 특정 유저의 팔로우를 취소하는 함수
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - 팔로우 취소 성공 : "Unfollow complete" (200)
+            - 팔로우가 존재하지 않는 경우 : "Follow relation not found" (404)
+            - 기타 예외 발생 : 에러 메시지 (500)
+        """
+        try:
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
+
+            body = json.loads(request.body)
+            nickname = body.get("name")
+
+            if not nickname:
+                return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+            try:
+                target_user = User.objects.get(nickname=nickname)
+            except User.DoesNotExist:
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            follow_relation = Follow.objects.filter(userA=user, userB=target_user)
+
+            if not follow_relation.exists():
+                return JsonResponse(
+                    {"message": "Follow relation not found"}, status=404
+                )
+
+            follow_relation.delete()
+            return JsonResponse({"message": "Unfollow complete"}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
+
+
+@api_view(["GET"])
+def get_follows(request):
+    """
+    @brief 팔로우 하고있는 유저들의 데이터를 요청하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 팔로우 하고있는 유저들의 데이터 (200)
+        - 기타 예외 발생 : 에러 메시지 (500)
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        follows = user.following.all()
+
+        follow_list = []
+        for follow in follows:
+            if follow.userA == user:
+                follow_user = follow.userB
+
+            follow_list.append(
+                {"nickname": follow_user.nickname, "imagePath": follow_user.imagePath}
+            )
+        return JsonResponse({"data": follow_list}, status=200)
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
