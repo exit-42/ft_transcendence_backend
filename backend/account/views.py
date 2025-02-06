@@ -14,6 +14,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 
 User = get_user_model()
 
@@ -819,3 +821,60 @@ def change_nickname(request):
         return JsonResponse({"message": "success"}, status=200)
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
+
+
+@api_view(["POST"])
+def change_profile_image(request):
+    """
+    @brief 유저가 업로드 한 이미지를 저장하고 유저의 프로필 이미지를 변경하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 프로필 이미지 변경 성공 메시지 (201)
+        - 기타 예외 발생 : 에러 메시지 (4xx, 500)
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        if "profile_image" not in request.FILES:
+            return JsonResponse({"message": "No file provided"}, status=400)
+
+        image = request.FILES["profile_image"]
+
+        allowed_extensions = [".jpg", ".jpeg", ".png"]
+        _, ext = os.path.splitext(image.name)
+        ext = ext.lower()
+
+        if ext not in allowed_extensions:
+            return JsonResponse(
+                {"message": "Invalid file type. Only JPG, JPEG, PNG allowed."},
+                status=400,
+            )
+
+        file_name = f"{user.username}{ext}"
+        file_path = os.path.join("profile_images", file_name)
+
+        if default_storage.exists(file_path):
+            try:
+                default_storage.delete(file_path)
+            except Exception as e:
+                return JsonResponse(
+                    {"message": f"Error deleting old file: {str(e)}"}, status=500
+                )
+
+        saved_path = default_storage.save(file_path, ContentFile(image.read()))
+        image_url = f"/media/{saved_path}"
+
+        user.imagePath = image_url
+        user.save()
+
+        return JsonResponse({"message": "Image change success"}, status=201)
+
+    except KeyError:
+        return JsonResponse({"message": "Missing required fields"}, status=400)
+
+    except Exception as e:
+        return JsonResponse({"message": f"Unexpected error: {str(e)}"}, status=500)

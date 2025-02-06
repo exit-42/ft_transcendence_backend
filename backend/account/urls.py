@@ -18,4 +18,5 @@ urlpatterns = [
     path("follow/", views.followView.as_view()),
     path("follows/", views.get_follows),
     path("profile/nickname/", views.change_nickname),
+    path("profile/image/", views.change_profile_image),
 ]
