@@ -17,4 +17,5 @@ urlpatterns = [
     path("csrf-token/", views.get_csrf_token),
     path("follow/", views.followView.as_view()),
     path("follows/", views.get_follows),
+    path("profile/nickname/", views.change_nickname),
 ]

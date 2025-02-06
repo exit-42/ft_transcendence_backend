@@ -786,3 +786,36 @@ def get_follows(request):
         return JsonResponse({"data": follow_list}, status=200)
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
+
+
+@api_view(["PATCH"])
+def change_nickname(request):
+    """
+    @brief 유저의 nickname을 변경하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 닉네임 변경 성공 메시지 (200)
+        - 기타 예외 발생 : 에러 메시지 (4xx, 500)
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        body = json.loads(request.body)
+        new_nickname = body.get("name")
+
+        if not new_nickname:
+            return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+        if User.objects.filter(nickname=new_nickname).exists():
+            return JsonResponse({"message": "Nickname is already in use"}, status=409)
+
+        user.nickname = new_nickname
+        user.save()
+
+        return JsonResponse({"message": "success"}, status=200)
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
