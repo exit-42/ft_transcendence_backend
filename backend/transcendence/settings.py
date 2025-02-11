@@ -204,3 +204,9 @@ CSRF_TRUSTED_ORIGINS = [
     os.environ.get("FRONT_SERVER_URL"),
     os.environ.get("BACK_SERVER_URL"),
 ]
+
+
+# MEDIA
+MEDIA_ROOT = "/app/media/"
+
+MEDIA_URL = "/media/"
