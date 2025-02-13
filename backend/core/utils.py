@@ -1,3 +1,4 @@
+import random
 from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
@@ -71,3 +72,25 @@ def authenticate_token(request):
         return None, JsonResponse({"message": "User not found"}, status=401)
 
     return user, None
+
+
+def generate_random_nickname():
+    """
+    @brief 랜덤한 유저 닉네임을 생성하는 함수
+
+    @param 없음
+
+    @return 다른 유저와 중복되지 않는 랜덤 생성된 유저의 닉네임
+
+    @details
+    10000 부터 99999 까지의 임의의 수를 무작위로 골라서 '#' 문자열 뒤에 붙인다.
+    User 테이블을 조회하여 랜덤 생성된 닉네임의 중복여부를 확인한다.
+        - 중복되었다면 새로운 랜덤 닉네임을 다시 생성한다.
+        - 중복되지 않았다면 해당 닉네임을 리턴한다.
+    최종적으로 중복되지 않은 닉네임을 리턴한다.
+    """
+    while True:
+        random_number = f"{random.randint(10000, 99999):05}"
+        nickname = f"#{random_number}"
+        if not User.objects.filter(nickname=nickname).exists():
+            return nickname
