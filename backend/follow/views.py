@@ -8,7 +8,7 @@ from core.utils import authenticate_token
 
 User = get_user_model()
 
-from follows.models import Follow
+from follow.models import Follow
 
 
 class followView(View):
@@ -145,7 +145,7 @@ class followView(View):
 
 
 @api_view(["GET"])
-def get_follows(request):
+def get_follower_list(request):
     """
     @brief 팔로우 하고있는 유저들의 데이터를 요청하는 함수
 
@@ -160,10 +160,10 @@ def get_follows(request):
         if token_response:
             return token_response
 
-        follows = user.following.all()
+        followers = user.following.all()
 
         follow_list = []
-        for follow in follows:
+        for follow in followers:
             if follow.userA == user:
                 follow_user = follow.userB
 
