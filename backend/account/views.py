@@ -142,16 +142,22 @@ def change_profile_image(request):
                 status=400,
             )
 
+        default_image_url = (
+            os.environ.get("FRONT_SERVER_URL") + "/static/image/default.jpeg"
+        )
+
+        if user.imagePath and user.imagePath != default_image_url:
+            old_image_path = user.imagePath.replace("/media/", "")
+            if default_storage.exists(old_image_path):
+                try:
+                    default_storage.delete(old_image_path)
+                except Exception as e:
+                    return JsonResponse(
+                        {"message": f"Error deleting old file: {str(e)}"}, status=500
+                    )
+
         file_name = f"{user.username}{ext}"
         file_path = os.path.join("profile_images", file_name)
-
-        if default_storage.exists(file_path):
-            try:
-                default_storage.delete(file_path)
-            except Exception as e:
-                return JsonResponse(
-                    {"message": f"Error deleting old file: {str(e)}"}, status=500
-                )
 
         saved_path = default_storage.save(file_path, ContentFile(image.read()))
         image_url = f"/media/{saved_path}"
