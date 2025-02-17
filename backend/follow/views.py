@@ -19,7 +19,10 @@ class followView(APIView):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter(
-                'word', openapi.IN_QUERY, description="Search keyword", type=openapi.TYPE_STRING
+                "word",
+                openapi.IN_QUERY,
+                description="Search keyword",
+                type=openapi.TYPE_STRING,
             )
         ],
         responses={
@@ -41,25 +44,46 @@ class followView(APIView):
             ),
             400: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Word not provided")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Word not provided"
+                    )
+                },
             ),
             401: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        example="Invalid or expired refresh token",
+                    )
+                },
             ),
             404: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="User not found")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="User not found"
+                    )
+                },
             ),
             452: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Token refreshed"
+                    )
+                },
             ),
             500: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Unexpected server error"
+                    )
+                },
             ),
-        }
+        },
     )
     def get(self, request):
         """
@@ -108,46 +132,79 @@ class followView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                "name": openapi.Schema(type=openapi.TYPE_STRING, description="user nickname"),
+                "name": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="user nickname"
+                ),
             },
-            required=["name"]
-        ),  
+            required=["name"],
+        ),
         responses={
             201: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    "message": openapi.Schema(type=openapi.TYPE_STRING, example="Follow complete"),
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Follow complete"
+                    ),
                 },
             ),
             400: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Nickname not provided")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Nickname not provided"
+                    )
+                },
             ),
             401: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        example="Invalid or expired refresh token",
+                    )
+                },
             ),
             403: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="You cannot follow yourself")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="You cannot follow yourself"
+                    )
+                },
             ),
             404: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="User not found")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="User not found"
+                    )
+                },
             ),
             409: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Already exist")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Already exist"
+                    )
+                },
             ),
             452: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Token refreshed"
+                    )
+                },
             ),
             500: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Unexpected server error"
+                    )
+                },
             ),
-        }
+        },
     )
     @csrf_exempt
     def post(self, request):
@@ -197,38 +254,63 @@ class followView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                "name": openapi.Schema(type=openapi.TYPE_STRING, description="user nickname"),
+                "name": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="user nickname"
+                ),
             },
-            required=["name"]
-        ),  
+            required=["name"],
+        ),
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    "message": openapi.Schema(type=openapi.TYPE_STRING, example="Unfollow complete"),
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Unfollow complete"
+                    ),
                 },
             ),
             400: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Nickname not provided")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Nickname not provided"
+                    )
+                },
             ),
             401: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        example="Invalid or expired refresh token",
+                    )
+                },
             ),
             404: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Follow relation not found")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Follow relation not found"
+                    )
+                },
             ),
             452: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Token refreshed"
+                    )
+                },
             ),
             500: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Unexpected server error"
+                    )
+                },
             ),
-        }
+        },
     )
     @csrf_exempt
     def delete(self, request):
@@ -274,8 +356,9 @@ class followView(APIView):
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
 
+
 @swagger_auto_schema(
-    method='get',
+    method="get",
     responses={
         200: openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -285,8 +368,12 @@ class followView(APIView):
                     items=openapi.Schema(
                         type=openapi.TYPE_OBJECT,
                         properties={
-                            "nickname": openapi.Schema(type=openapi.TYPE_STRING, example="user nickname"),
-                            "imagePath": openapi.Schema(type=openapi.TYPE_STRING, example="user image path(url)"),
+                            "nickname": openapi.Schema(
+                                type=openapi.TYPE_STRING, example="user nickname"
+                            ),
+                            "imagePath": openapi.Schema(
+                                type=openapi.TYPE_STRING, example="user image path(url)"
+                            ),
                         },
                     ),
                 ),
@@ -294,15 +381,27 @@ class followView(APIView):
         ),
         401: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
         ),
         452: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
         ),
         500: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
         ),
     },
     operation_description="Retrieves the list of users the current user is following.",

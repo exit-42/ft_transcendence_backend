@@ -15,34 +15,57 @@ User = get_user_model()
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-#DRF Parsers
+# DRF Parsers
 from rest_framework.parsers import MultiPartParser, FormParser  # Import parsers
 
 
 @swagger_auto_schema(
-    method='post',
+    method="post",
     responses={
         200: openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                "username": openapi.Schema(type=openapi.TYPE_STRING, description="User's username"),
-                "imagePath": openapi.Schema(type=openapi.TYPE_STRING, description="URL of the user's profile image"),
-                "nickname": openapi.Schema(type=openapi.TYPE_STRING, description="User's nickname"),
-                "winCnt": openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of wins"),
-                "loseCnt": openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of losses"),
+                "username": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="User's username"
+                ),
+                "imagePath": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="URL of the user's profile image",
+                ),
+                "nickname": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="User's nickname"
+                ),
+                "winCnt": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Number of wins"
+                ),
+                "loseCnt": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Number of losses"
+                ),
             },
         ),
         401: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
         ),
         452: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
         ),
         500: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
         ),
     },
     operation_description="Retrieves user data using a JWT.",
@@ -78,12 +101,17 @@ def login(request):
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
 
+
 @swagger_auto_schema(
-    method='post',
+    method="post",
     responses={
         200: openapi.Schema(
-            type=openapi.TYPE_OBJECT, 
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="logged out successfully.")},
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="logged out successfully."
+                )
+            },
         ),
     },
     operation_description="Deletes the JWT from cookies.",
@@ -123,14 +151,17 @@ def get_csrf_token(request):
     """
     return JsonResponse({"csrfToken": get_token(request)})
 
+
 @swagger_auto_schema(
-    method='patch',
+    method="patch",
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            "name": openapi.Schema(type=openapi.TYPE_STRING, description="New nickname"),
+            "name": openapi.Schema(
+                type=openapi.TYPE_STRING, description="New nickname"
+            ),
         },
-        required=["name"]
+        required=["name"],
     ),
     responses={
         200: openapi.Schema(
@@ -140,15 +171,27 @@ def get_csrf_token(request):
         ),
         401: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
         ),
         452: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
         ),
         500: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
         ),
     },
     operation_description="Changes the user's nickname.",
@@ -186,8 +229,9 @@ def change_nickname(request):
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
 
+
 @swagger_auto_schema(
-    method='post',
+    method="post",
     manual_parameters=[
         openapi.Parameter(
             name="profile_image",
@@ -200,23 +244,44 @@ def change_nickname(request):
     responses={
         201: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Image change success")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Image change success"
+                )
+            },
         ),
         400: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid file type. Only JPG, JPEG, PNG allowed.")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    example="Invalid file type. Only JPG, JPEG, PNG allowed.",
+                )
+            },
         ),
         401: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid or expired refresh token")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
         ),
         452: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Token refreshed")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
         ),
         500: openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
         ),
     },
     operation_description="Uploads and changes the user's profile image.",
