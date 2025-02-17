@@ -2,7 +2,7 @@ import os, json
 from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.files.storage import default_storage
@@ -11,7 +11,66 @@ from core.utils import authenticate_token
 
 User = get_user_model()
 
+# Swagger
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
+# DRF Parsers
+from rest_framework.parsers import MultiPartParser, FormParser  # Import parsers
+
+
+@swagger_auto_schema(
+    method="post",
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "username": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="User's username"
+                ),
+                "imagePath": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="URL of the user's profile image",
+                ),
+                "nickname": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="User's nickname"
+                ),
+                "winCnt": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Number of wins"
+                ),
+                "loseCnt": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Number of losses"
+                ),
+            },
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
+        ),
+        452: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Retrieves user data using a JWT.",
+    operation_summary="Get user data",
+)
 @api_view(["POST"])
 def login(request):
     """
@@ -43,6 +102,21 @@ def login(request):
         return JsonResponse({"message": str(e)}, status=500)
 
 
+@swagger_auto_schema(
+    method="post",
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="logged out successfully."
+                )
+            },
+        ),
+    },
+    operation_description="Deletes the JWT from cookies.",
+    operation_summary="Logout user",
+)
 @api_view(["POST"])
 def logout(request):
     """
@@ -78,6 +152,51 @@ def get_csrf_token(request):
     return JsonResponse({"csrfToken": get_token(request)})
 
 
+@swagger_auto_schema(
+    method="patch",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "name": openapi.Schema(
+                type=openapi.TYPE_STRING, description="New nickname"
+            ),
+        },
+        required=["name"],
+    ),
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+            examples=[{"message": "success"}],  # Examples!
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
+        ),
+        452: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Changes the user's nickname.",
+    operation_summary="Change nickname",
+)
 @api_view(["PATCH"])
 def change_nickname(request):
     """
@@ -111,7 +230,65 @@ def change_nickname(request):
         return JsonResponse({"message": str(e)}, status=500)
 
 
+@swagger_auto_schema(
+    method="post",
+    manual_parameters=[
+        openapi.Parameter(
+            name="profile_image",
+            in_=openapi.IN_FORM,
+            type=openapi.TYPE_FILE,
+            description="Profile image file",
+            required=True,
+        ),
+    ],
+    responses={
+        201: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Image change success"
+                )
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    example="Invalid file type. Only JPG, JPEG, PNG allowed.",
+                )
+            },
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
+        ),
+        452: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Uploads and changes the user's profile image.",
+    operation_summary="Change profile image",
+)
 @api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
 def change_profile_image(request):
     """
     @brief 유저가 업로드 한 이미지를 저장하고 유저의 프로필 이미지를 변경하는 함수
