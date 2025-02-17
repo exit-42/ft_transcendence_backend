@@ -3,16 +3,53 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
 from core.utils import generate_random_nickname
+
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 User = get_user_model()
 
 from authentication.models import LocalAuth
 
-
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "id": openapi.Schema(type=openapi.TYPE_STRING, description="user's login id"),
+            "password": openapi.Schema(type=openapi.TYPE_STRING, description="user's login password"),
+        },
+        required=["id", "password"]
+    ),  
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, example="Email has been sent."),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Please provide id and password. Both are required.")},
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="wrong password.")},
+        ),
+        404: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="id not exist.")},
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Failed to send email")},
+        ),
+    }
+)
 @api_view(["POST"])
 def signin_local_auth(request):
     """
@@ -69,7 +106,40 @@ def signin_local_auth(request):
     except Exception as e:
         return JsonResponse({"message": f"{str(e)}"}, status=500)
 
-
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "code": openapi.Schema(type=openapi.TYPE_STRING, description="email 2FA code"),
+        },
+        required=["code"]
+    ),  
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, example="success"),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid code or email.")},
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="User not found")},
+        ),
+        404: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Session data is missing or expired.")},
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+        ),
+    }
+)
 @api_view(["POST"])
 def get_local_auth_token(request):
     """
@@ -137,7 +207,35 @@ def get_local_auth_token(request):
     except Exception as e:
         return JsonResponse({"message": f"{str(e)}"}, status=500)
 
-
+@swagger_auto_schema(
+    method='get',
+    manual_parameters=[
+        openapi.Parameter(
+            'id', openapi.IN_QUERY, description="login id", type=openapi.TYPE_STRING
+        )
+    ],
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, example="ID is available"),
+                "id": openapi.Schema(type=openapi.TYPE_STRING, example="login id")
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="ID not provided.")},
+        ),
+        409: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="ID already in use")},
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+        ),
+    }
+)
 @api_view(["GET"])
 def check_local_auth_id(request):
     """
@@ -165,7 +263,32 @@ def check_local_auth_id(request):
     except Exception as e:
         return JsonResponse({"message": f"Server error: {str(e)}"}, status=500)
 
-
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "email": openapi.Schema(type=openapi.TYPE_STRING, description="user email address"),
+        },
+        required=["email"]
+    ),  
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, example="Email has been sent."),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Email is required.")},
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+        ),
+    }
+)
 @api_view(["POST"])
 def send_authentication_email(request):
     """
@@ -213,7 +336,37 @@ def send_authentication_email(request):
     except Exception as e:
         return JsonResponse({"message": f"{str(e)}"}, status=500)
 
-
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "email": openapi.Schema(type=openapi.TYPE_STRING, description="user email address"),
+            "code": openapi.Schema(type=openapi.TYPE_STRING, description="email 2FA code"),
+        },
+        required=["email"]
+    ),  
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, example="Authentication successful."),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Invalid code or email.")},
+        ),
+        404: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Session data is missing or expired.")},
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+        ),
+    }
+)
 @api_view(["POST"])
 def authenticate_code(request):
     """
@@ -264,7 +417,42 @@ def authenticate_code(request):
     except Exception as e:
         return JsonResponse({"message": f"{str(e)}"}, status=500)
 
-
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "id": openapi.Schema(type=openapi.TYPE_STRING, description="user's login id"),
+            "password": openapi.Schema(type=openapi.TYPE_STRING, description="user's login password"),
+            "email": openapi.Schema(type=openapi.TYPE_STRING, description="user email address"),
+        },
+        required=["id", "password", "email"]
+    ),  
+    responses={
+        201: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, example="Sign-up success!"),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="All fields are required.")},
+        ),
+        403: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Email verification is required.")},
+        ),
+        409: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="ID already in use")},
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING, example="Unexpected server error")},
+        ),
+    }
+)
 @api_view(["POST"])
 def local_auth_sign_up(request):
     """
