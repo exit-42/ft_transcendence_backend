@@ -96,7 +96,7 @@ def get_local_auth_token(request):
 
         if not stored_user_id or not stored_code:
             return JsonResponse(
-                {"message": "Session data is missing or expired."}, status=400
+                {"message": "Session data is missing or expired."}, status=404
             )
 
         if stored_code == authenticate_code:
@@ -248,7 +248,7 @@ def authenticate_code(request):
 
         if not stored_code or not stored_email:
             return JsonResponse(
-                {"message": "Session data is missing or expired."}, status=400
+                {"message": "Session data is missing or expired."}, status=404
             )
 
         if stored_code == authenticate_code and stored_email == authenticate_email:
