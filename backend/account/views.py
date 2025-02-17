@@ -142,12 +142,19 @@ def change_profile_image(request):
                 status=400,
             )
 
-        default_image_url = (
-            os.environ.get("FRONT_SERVER_URL") + "/static/image/default.jpeg"
-        )
+        front_server_url = os.environ.get("FRONT_SERVER_URL", "").rstrip("/")
+        default_image_url = f"{front_server_url}/static/image/default.jpeg"
 
         if user.imagePath and user.imagePath != default_image_url:
-            old_image_path = user.imagePath.replace("/media/", "")
+            if user.imagePath.startswith(front_server_url):
+                old_image_path = user.imagePath.replace(front_server_url, "").lstrip(
+                    "/"
+                )
+            else:
+                old_image_path = user.imagePath.replace("/media/", "")
+
+            old_image_path = old_image_path.replace("media/", "", 1)
+
             if default_storage.exists(old_image_path):
                 try:
                     default_storage.delete(old_image_path)
@@ -160,7 +167,7 @@ def change_profile_image(request):
         file_path = os.path.join("profile_images", file_name)
 
         saved_path = default_storage.save(file_path, ContentFile(image.read()))
-        image_url = f"/media/{saved_path}"
+        image_url = f"{front_server_url}/media/{saved_path}"
 
         user.imagePath = image_url
         user.save()
