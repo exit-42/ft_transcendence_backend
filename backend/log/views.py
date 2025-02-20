@@ -224,3 +224,148 @@ class logView(APIView):
 
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
+
+
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "player_A_id": openapi.Schema(
+                type=openapi.TYPE_INTEGER, description="Player A ID"
+            ),
+            "player_B_id": openapi.Schema(
+                type=openapi.TYPE_INTEGER, description="Player B ID"
+            ),
+            "score_A": openapi.Schema(
+                type=openapi.TYPE_INTEGER, description="Player A Score"
+            ),
+            "score_B": openapi.Schema(
+                type=openapi.TYPE_INTEGER, description="Player B Score"
+            ),
+            "game_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="Game ID"),
+            "rank": openapi.Schema(type=openapi.TYPE_INTEGER, description="Match Rank"),
+        },
+        required=[
+            "player_A_id",
+            "player_B_id",
+            "score_A",
+            "score_B",
+            "game_id",
+            "rank",
+        ],
+    ),
+    responses={
+        201: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Match created successfully!"
+                ),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid request data"
+                )
+            },
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
+        ),
+        404: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="User or Game not found"
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Creates a match record after a 1v1 game ends.",
+    operation_summary="Create Match Log",
+)
+@api_view(["POST"])
+def create_match_log(request):
+    """
+    @brief 게임 후 match 결과를 등록하는 함수 (Django 서버 내부에서 사용하는 API)
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - 매치 등록 성공 : "Match created successfully!" (201)
+            - 유효하지 않은 요청 데이터 : "Invalid request data" (400)
+            - 사용자가 존재하지 않음 : "User not found" (404)
+            - 게임이 존재하지 않음 : "Game not found" (404)
+            - 기타 서버 오류 발생 : 에러 메시지 (500)
+
+        @details
+        매치(1대1)가 종료될 때 호출하는 내부 API
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON format"}, status=400)
+
+        required_fields = [
+            "player_A_id",
+            "player_B_id",
+            "score_A",
+            "score_B",
+            "game_id",
+            "rank",
+        ]
+        if not all(field in body for field in required_fields):
+            return JsonResponse({"message": "Invalid request data"}, status=400)
+
+        player_A_id = body.get("player_A_id")
+        player_B_id = body.get("player_B_id")
+        score_A = body.get("score_A")
+        score_B = body.get("score_B")
+        game_id = body.get("game_id")
+        rank = body.get("rank")
+
+        try:
+            player_A = User.objects.get(id=player_A_id)
+            player_B = User.objects.get(id=player_B_id)
+        except User.DoesNotExist:
+            return JsonResponse({"message": "User not found"}, status=404)
+
+        try:
+            Game.objects.get(gameId=game_id)
+        except Game.DoesNotExist:
+            return JsonResponse({"message": "Game not found"}, status=404)
+
+        Match.objects.create(
+            playerA=player_A,
+            playerB=player_B,
+            scoreA=score_A,
+            scoreB=score_B,
+            gameId=game_id,
+            rank=rank,
+        )
+
+        return JsonResponse({"message": "match created successfully!"}, status=201)
+
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
