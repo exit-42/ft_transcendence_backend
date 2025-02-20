@@ -14,6 +14,6 @@ class UserAdmin(admin.ModelAdmin):
     @list_filter 리스트 필터링 옵션
     """
 
-    list_display = ("username", "email", "nickname", "winCnt", "loseCnt", "is_staff")
+    list_display = ("id", "username", "email", "nickname", "winCnt", "loseCnt", "is_staff")
     search_fields = ("username", "nickname")
     list_filter = ("is_staff", "is_superuser")
