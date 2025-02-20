@@ -80,7 +80,7 @@ class logView(APIView):
             - 에러 발생 : 에러메시지 (4xx or 500)
 
         @details
-        지정한 타입의 게임을 생성한다.
+        게임을 시작할 때 호출하는 내부 API
         """
         try:
             user, token_response = authenticate_token(request)
@@ -100,6 +100,124 @@ class logView(APIView):
             game = Game.objects.create(isTournament=is_tournament)
 
             return JsonResponse({"gameId": game.gameId}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "id": openapi.Schema(type=openapi.TYPE_INTEGER, description="Game ID"),
+            },
+            required=["id"],
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        example="Game status changed successfully!",
+                    ),
+                },
+            ),
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Game ID not provided"
+                    )
+                },
+            ),
+            401: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        example="Invalid or expired refresh token",
+                    )
+                },
+            ),
+            404: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Game not found"
+                    )
+                },
+            ),
+            409: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Game is already ended"
+                    )
+                },
+            ),
+            452: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Token refreshed"
+                    )
+                },
+            ),
+            500: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="Unexpected server error"
+                    )
+                },
+            ),
+        },
+    )
+    def patch(self, request):
+        """
+        @brief game의 진행상태를 종료로 변경하는 함수 (Django 서버 내부에서 사용하는 API)
+
+        @param request Django의 HTTP 요청 객체
+
+        @return
+            - isEnd 변경 성공 : 변경 성공 메시지 (200)
+            - 게임 ID 제공되지 않음 : 에러 메시지 (400)
+            - 게임이 존재하지 않음 : 에러 메시지 (404)
+            - 게임이 이미 종료됨 : 에러 메시지 (409)
+            - 인증 실패 : 에러 메시지 (401)
+            - 기타 예외 발생 : 에러 메시지 (500)
+
+        @details
+        게임이 종료될 때 호출하는 내부 API
+        """
+        try:
+            user, token_response = authenticate_token(request)
+            if token_response:
+                return token_response
+
+            body = json.loads(request.body)
+            game_id = body.get("id")
+
+            if not game_id:
+                return JsonResponse({"message": "Game id not provided"}, status=400)
+
+            try:
+                game = Game.objects.get(gameId=game_id)
+            except Game.DoesNotExist:
+                return JsonResponse({"message": "Game not found"}, status=404)
+
+            if game.isEnd:
+                return JsonResponse({"message": "Game is already ended"}, status=409)
+
+            game.isEnd = True
+            game.save()
+
+            return JsonResponse(
+                {"message": "Game status changed successfully!"}, status=200
+            )
 
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON format"}, status=400)
