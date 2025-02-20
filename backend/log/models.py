@@ -19,7 +19,7 @@ class Game(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.gameId
+        return f"{self.gameId}"
 
 
 class Match(models.Model):
@@ -51,4 +51,4 @@ class Match(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.matchId
+        return f"{self.matchId}"

@@ -352,9 +352,12 @@ def create_match_log(request):
             return JsonResponse({"message": "User not found"}, status=404)
 
         try:
-            Game.objects.get(gameId=game_id)
+            game = Game.objects.get(gameId=game_id)
         except Game.DoesNotExist:
             return JsonResponse({"message": "Game not found"}, status=404)
+
+        if game.isEnd == True:
+            return JsonResponse({"message": "Game not online"}, status=400)
 
         Match.objects.create(
             playerA=player_A,
