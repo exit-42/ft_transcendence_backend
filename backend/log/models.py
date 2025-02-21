@@ -46,7 +46,7 @@ class Match(models.Model):
     )
     scoreA = models.IntegerField(default=0)
     scoreB = models.IntegerField(default=0)
-    gameId = models.IntegerField()
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="matches")
     rank = models.PositiveIntegerField(default=1)
     createdAt = models.DateTimeField(auto_now_add=True)
 

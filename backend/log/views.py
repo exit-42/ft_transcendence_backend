@@ -71,7 +71,7 @@ class logView(APIView):
     )
     def post(self, request):
         """
-        @brief game을 생성하는 함수 (Django 서버 내부에서 사용하는 API)
+        @brief game을 생성하는 함수 (테스트 용도로만 사용할 임시 함수)
 
         @param request Django의 HTTP 요청 객체
 
@@ -178,7 +178,7 @@ class logView(APIView):
     )
     def patch(self, request):
         """
-        @brief game의 진행상태를 종료로 변경하는 함수 (Django 서버 내부에서 사용하는 API)
+        @brief game의 진행상태를 종료로 변경하는 함수 (테스트 용도로만 사용할 임시 함수)
 
         @param request Django의 HTTP 요청 객체
 
@@ -303,7 +303,7 @@ class logView(APIView):
 @api_view(["POST"])
 def create_match_log(request):
     """
-    @brief 게임 후 match 결과를 등록하는 함수 (Django 서버 내부에서 사용하는 API)
+    @brief 게임 후 match 결과를 등록하는 함수 (테스트 용도로만 사용할 임시 함수)
 
         @param request Django의 HTTP 요청 객체
 
@@ -364,10 +364,9 @@ def create_match_log(request):
             playerB=player_B,
             scoreA=score_A,
             scoreB=score_B,
-            gameId=game_id,
+            game=game,
             rank=rank,
         )
-
         return JsonResponse({"message": "match created successfully!"}, status=201)
 
     except Exception as e:

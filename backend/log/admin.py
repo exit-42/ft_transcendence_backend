@@ -38,9 +38,9 @@ class MatchAdmin(admin.ModelAdmin):
         "playerB",
         "scoreA",
         "scoreB",
-        "gameId",
+        "game",
         "rank",
         "createdAt",
     )
-    search_fields = ("playerA__nickname", "playerB__nickname", "gameId")
+    search_fields = ("playerA__nickname", "playerB__nickname", "game__gameId")
     ordering = ("-createdAt",)
