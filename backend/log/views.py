@@ -371,3 +371,152 @@ def create_match_log(request):
 
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
+
+
+@swagger_auto_schema(
+    method="get",
+    manual_parameters=[
+        openapi.Parameter(
+            "game_type",
+            openapi.IN_QUERY,
+            description="Type of game to fetch (tournament or normal).",
+            type=openapi.TYPE_STRING,
+            required=True,
+            enum=["tournament", "normal"],
+        ),
+        openapi.Parameter(
+            "cursor",
+            openapi.IN_QUERY,
+            description="The gameId to start fetching results from (for pagination). Default is -1 (latest).",
+            type=openapi.TYPE_INTEGER,
+            required=False,
+            default=-1,
+        ),
+    ],
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Games loaded successfully!"
+                ),
+                "games": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "gameId": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=102
+                            ),
+                            "isTournament": openapi.Schema(
+                                type=openapi.TYPE_BOOLEAN, example=True
+                            ),
+                            "createdAt": openapi.Schema(
+                                type=openapi.TYPE_STRING,
+                                example="2025-02-21 15:45:30",
+                            ),
+                        },
+                    ),
+                ),
+                "next_cursor": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    example=97,
+                    description="Cursor for the next page. If null, no more data is available.",
+                ),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    example="Invalid cursor value or game type",
+                )
+            },
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    example="Invalid or expired refresh token",
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Retrieve paginated list of completed games based on type (normal or tournament), ordered by most recent.",
+    operation_summary="Get Game Logs",
+)
+@api_view(["GET"])
+def get_game_logs(request):
+    """
+    @brief 특정 타입의 게임 로그를 가져오는 API
+
+    @param request Django의 HTTP 요청 객체
+        - game_type: "tournament" 또는 "normal" (필수)
+        - cursor: gameId 기준으로 페이징 (기본값: -1)
+
+    @return
+        - 게임 조회 성공 : "Games loaded successfully!" (200)
+        - 유효하지 않은 요청 데이터 : "Invalid cursor value or game type" (400)
+        - 기타 서버 오류 발생 : 에러 메시지 (500)
+
+    @details
+        - Cursor-based Pagination 지원
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        game_type = request.GET.get("game_type")
+        if game_type not in ["tournament", "normal"]:
+            return JsonResponse({"message": "Invalid game type"}, status=400)
+
+        cursor = request.GET.get("cursor", "-1")
+        try:
+            cursor = int(cursor)
+        except ValueError:
+            return JsonResponse({"message": "Invalid cursor value"}, status=400)
+
+        is_tournament = True if game_type == "tournament" else False
+
+        query = Game.objects.filter(isEnd=True, isTournament=is_tournament).order_by(
+            "-gameId"
+        )
+
+        if cursor != -1:
+            query = query.filter(gameId__lt=cursor)
+
+        games = list(query[:5])
+
+        next_cursor = games[-1].gameId if games else None
+
+        game_list = [
+            {
+                "gameId": game.gameId,
+                "isTournament": game.isTournament,
+                "createdAt": game.createdAt.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            for game in games
+        ]
+
+        return JsonResponse(
+            {
+                "message": "Games loaded successfully!",
+                "games": game_list,
+                "next_cursor": next_cursor,
+            },
+            status=200,
+        )
+
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)
