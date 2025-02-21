@@ -500,14 +500,31 @@ def get_game_logs(request):
 
         next_cursor = games[-1].gameId if games else None
 
-        game_list = [
-            {
-                "gameId": game.gameId,
-                "isTournament": game.isTournament,
-                "createdAt": game.createdAt.strftime("%Y-%m-%d %H:%M:%S"),
-            }
-            for game in games
-        ]
+        game_list = []
+        for game in games:
+            matches = game.matches.all()
+            match_list = [
+                {
+                    "matchId": match.matchId,
+                    "playerA": match.playerA.nickname,
+                    "playerB": match.playerB.nickname,
+                    "playerAimagePath": match.playerA.imagePath,
+                    "playerBimagePath": match.playerB.imagePath,
+                    "scoreA": match.scoreA,
+                    "scoreB": match.scoreB,
+                    "rank": match.rank,
+                }
+                for match in matches
+            ]
+
+            game_list.append(
+                {
+                    "gameId": game.gameId,
+                    "isTournament": game.isTournament,
+                    "createdAt": game.createdAt.strftime("%Y-%m-%d %H:%M:%S"),
+                    "matches": match_list,
+                }
+            )
 
         return JsonResponse(
             {
