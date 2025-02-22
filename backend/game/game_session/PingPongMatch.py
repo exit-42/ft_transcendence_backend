@@ -11,16 +11,23 @@ GAME_HEIGHT = 600
 FPS = 30
 FRAME_DURATION = 1 / FPS
 
-PADDLE_SPEED = 10           # 패들 이동 속도(키 입력당 이동량)
+PADDLE_SPEED = 10           # 키 입력당 이동량
 PADDLE_WIDTH = 100          # 패들 너비 (중심 기준)
 PADDLE_Y_OFFSET = 30        # 패들이 화면 가장자리에서 떨어진 거리
-BALL_RADIUS = 10            # 공의 반지름
+BALL_RADIUS = 10            # 공 반지름
 
-
+# ============================================
+# PingPongMatch 클래스 (개별 경기 로직)
+# ============================================
 class PingPongMatch:
-    def __init__(self, player1_ws, player2_ws, match_id=""):
-        self.player1_ws = player1_ws  # 하단 패들 (플레이어 1)
-        self.player2_ws = player2_ws  # 상단 패들 (플레이어 2)
+    def __init__(self, players, match_id="", watch_list=[]):
+        self.player1_ws = players[0].websocket  # 하단 패들 (플레이어 1)
+        self.player2_ws = players[1].websocket  # 상단 패들 (플레이어 2)
+        self.player1_username = players[0].username
+        self.player2_username = players[0].username
+        self.watch_list = watch_list
+        self.player1_score = 0
+        self.player2_score = 0
         self.match_id = match_id
 
         # 각 플레이어의 입력 메시지를 저장할 큐
@@ -28,8 +35,8 @@ class PingPongMatch:
         self.game_over = False
         self.winner = None  # 게임 종료 후 승리자 (1 또는 2)
 
-        # 초기 상태: 공은 중앙에서 시작하며, 임의 방향으로 이동
-        self.ball_pos = [GAME_WIDTH / 2, GAME_HEIGHT / 2]
+        # 초기 상태: 공은 중앙에서 시작하며 임의 방향으로 이동
+        self.ball_pos = [GAME_WIDTH / 2, GAME_HEIGHT / 2]  # [x, y] (y를 z처럼 사용)
         self.ball_vel = [random.choice([-5, 5]), random.choice([-5, 5])]
         # 각 패들의 x 위치 (초기엔 중앙)
         self.paddle1_x = GAME_WIDTH / 2
@@ -58,7 +65,7 @@ class PingPongMatch:
                 except asyncio.QueueEmpty:
                     break
 
-    def update_ball(self):
+    async def update_ball(self):
         """공의 위치 업데이트, 패들 충돌 및 골 체크"""
         self.ball_pos[0] += self.ball_vel[0]
         self.ball_pos[1] += self.ball_vel[1]
@@ -72,10 +79,12 @@ class PingPongMatch:
             paddle_y = GAME_HEIGHT - PADDLE_Y_OFFSET
             if self.ball_pos[1] + BALL_RADIUS >= paddle_y:
                 if abs(self.ball_pos[0] - self.paddle1_x) <= PADDLE_WIDTH / 2:
-                    self.ball_vel[1] *= -1  # 충돌 시 y 방향 반전
+                    self.ball_vel[1] *= -1
                 else:
-                    self.game_over = True
-                    self.winner = 2  # 패들을 놓쳤으므로 플레이어2 승리
+                    self.player2_score += 1
+                    self.winner = 2
+                    self.broadcast_result()
+                    await asyncio.sleep(1)
         # 상단(플레이어2) 패들 충돌 체크 (공이 올라가는 경우)
         elif self.ball_vel[1] < 0:
             paddle_y = PADDLE_Y_OFFSET
@@ -83,39 +92,70 @@ class PingPongMatch:
                 if abs(self.ball_pos[0] - self.paddle2_x) <= PADDLE_WIDTH / 2:
                     self.ball_vel[1] *= -1
                 else:
-                    self.game_over = True
+                    self.player1_score += 1
                     self.winner = 1
-
-    async def broadcast_state(self):
-        """현재 게임 상태(공의 위치, 패들 위치, 게임 종료 여부, 승자)를 클라이언트에 전송"""
-        state = {
-            "ball_pos": self.ball_pos,
-            "paddle1_x": self.paddle1_x,
-            "paddle2_x": self.paddle2_x,
-            "game_over": self.game_over,
-            "winner": self.winner,
-        }
-        msg = json.dumps(state)
-        try:
-            await asyncio.gather(
-                self.player1_ws.send(msg),
-                self.player2_ws.send(msg)
-            )
-        except Exception as e:
+                    self.broadcast_result()
+                    await asyncio.sleep(1)
+        # 게임 종료 조건 (5점)
+        if self.player1_score is 5 or self.player2_score is 5:
             self.game_over = True
 
+    async def broadcast_state(self):
+        """현재 게임 상태를 play DTO로 클라이언트에 전송 (30fps)"""
+        state1 = {
+            "type": "play",
+            "ball": self.ball_pos,  # [x, y] → [x, z]
+            "player": [self.paddle1_x, self.paddle2_x],
+        }
+        msg1 = json.dumps(state1)
+        state2 = {
+            "type": "play",
+            "ball": self.ball_pos,  # [x, y] → [x, z]
+            "player": [self.paddle2_x, self.paddle1_x],
+        }
+        msg2 = json.dumps(state2)
+        try:
+            self.player1_ws.send(msg1)
+            self.player2_ws.send(msg2)
+        except Exception as e:
+            self.game_over = True
+            
+        for watcher in self.watch_list:
+            watcher.websocket.send(msg1)
+
+    async def broadcast_result(self):
+        """게임 결과를 result DTO로 전송"""
+        if self.winner == 1:
+            result = {
+                "type": "result",
+                "win": self.player1_username,
+                "lose": self.player2_username,
+            }
+        else:
+            result = {
+                "type": "result",
+                "win": self.player2_username,
+                "lose": self.player1_username,
+            }
+        msg = json.dumps(result)
+        try:
+            self.player1_ws.send(msg)
+            self.player2_ws.send(msg)
+            for watcher in self.watch_list:
+                watcher.websocket.send(msg)
+        except Exception as e:
+            pass
+
     async def game_loop(self):
-        """30fps 루프: 입력 처리 → 상태 업데이트 → 브로드캐스트"""
+        """30fps 루프: 입력 처리 → 상태 업데이트 → play 메시지 브로드캐스트"""
         while not self.game_over:
             start_time = time.time()
             await self.process_inputs()
             self.update_ball()
-            await self.broadcast_state()
+            self.broadcast_state()
             elapsed = time.time() - start_time
             await asyncio.sleep(max(0, FRAME_DURATION - elapsed))
-        await self.broadcast_state()
 
     async def run(self):
-        """경기 실행 후 승리자 반환"""
         await self.game_loop()
         return self.winner
