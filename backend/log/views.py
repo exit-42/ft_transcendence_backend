@@ -487,6 +487,9 @@ def get_game_logs(request):
         except ValueError:
             return JsonResponse({"message": "Invalid cursor value"}, status=400)
 
+        if cursor < -1:
+            return JsonResponse({"message": "Invalid cursor"}, status=400)
+
         is_tournament = True if game_type == "tournament" else False
 
         query = Game.objects.filter(isEnd=True, isTournament=is_tournament).order_by(
@@ -505,7 +508,6 @@ def get_game_logs(request):
             matches = game.matches.all()
             match_list = [
                 {
-                    "matchId": match.matchId,
                     "playerA": match.playerA.nickname,
                     "playerB": match.playerB.nickname,
                     "playerAimagePath": match.playerA.imagePath,
@@ -520,7 +522,6 @@ def get_game_logs(request):
             game_list.append(
                 {
                     "gameId": game.gameId,
-                    "isTournament": game.isTournament,
                     "createdAt": game.createdAt.strftime("%Y-%m-%d %H:%M:%S"),
                     "matches": match_list,
                 }
