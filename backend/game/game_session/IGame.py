@@ -10,27 +10,31 @@ from PingPongMatch import *
 
 
 class IGame(metaclass=ABCMeta):
-    def __init__(self):
+    def __init__(self, room_id):
         self.waiting_queue = []
         self.game_start = False
         self.system = None
+        self.room_id = room_id
         self.connect_to_websocket()
 
     async def connect_to_websocket(self):
         uri = os.getenv("DJANGO_WEBSOCKET_URI")
         self.system = await websockets.connect(uri)
-        if self.system.close:
-            raise Exception("cannot connect with main server")
+        try:
+            pong = await self.system.ping()
+            await pong
+        except:
+            raise Exception("Cannot connect with main server")
 
     @abstractmethod
-    async def start_individual_match(player1, player2, path):
+    async def start_match(player1_info, player2_info):
         pass
 
     @abstractmethod
     async def matchmaker():
         pass
 
-    async def player_handler(websocket, path, match, player_number):
+    async def player_handler(websocket, match, player_number):
         """
         각 플레이어 소켓에서 들어오는 메시지를 읽어 해당 플레이어 큐(match.input_queues)에 저장
         """
@@ -46,12 +50,13 @@ class IGame(metaclass=ABCMeta):
             match.game_over = True
             match.winner = 2 if player_number == 1 else 1
 
-    async def broadcast_to_waiting(self, waiting_list, message):
+    async def broadcast_to_waiting(self, message):
         for ws, _ in self.waiting_queue:
             try:
                 await ws.send(message)
             except:
                 pass
+        await self.system.send(message)
 
     async def register(self, websocket: WebSocketServerProtocol, path: str):
         cookies = websocket.request_headers.get("Cookie", "")
@@ -91,20 +96,21 @@ class IGame(metaclass=ABCMeta):
             websocket=websocket, user_id=user_id, username=username
         )
         self.waiting_queue.append(player_info)
-        join_msg = json.dumps({"type": "join", "data": username})
-        await self.broadcast_to_waiting(self.waiting_queue, join_msg)
+        join_msg = json.dumps({"type": "join", "room_id": self.room_id, "data": username})
+        await self.broadcast_to_waiting(join_msg)
 
         try:
             await websocket.wait_closed()
         finally:
             if self.game_start is False and player_info in self.waiting_queue:
                 self.waiting_queue.remove(player_info)
-                part_msg = json.dumps({"type": "part", "data": username})
-                await self.broadcast_to_waiting(self.waiting_queue, part_msg)
+                part_msg = json.dumps({"type": "part", "room_id": self.room_id, "data": username})
+                await self.broadcast_to_waiting(part_msg)
 
     async def send_log(self, result, player1_info, player2_info, rank):
         msg = {
             "type": "result",
+            "room_id": self.room_id,
             "player_A_id": player1_info.user_id,
             "player_B_id": player2_info.user_id,
             "score_A": result.player1_score,

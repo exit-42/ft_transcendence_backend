@@ -8,14 +8,14 @@ from TournamentGame import tournament
 # ============================================
 # 메인 서버: 모드에 따라 소켓 서버 및 매치메이커 실행
 # ============================================
-async def main_server(mode, port):
+async def main_server(mode, port, room_id):
     if mode == "individual":
         # print(f"Starting individual match server on port {port}")
         # 매치메이커 태스크 시작
-        game = individual
+        game = individual(room_id)
     elif mode == "tournament":
         # print(f"Starting tournament match server on port {port}")
-        game = tournament
+        game = tournament(room_id)
     else:
         print("Unknown mode")
         return
@@ -24,8 +24,8 @@ async def main_server(mode, port):
     await server.wait_closed()
 
 
-def start_server(mode, port):
-    asyncio.get_event_loop().run_until_complete(main_server(mode, port))
+def start_server(mode, port, room_id):
+    asyncio.get_event_loop().run_until_complete(main_server(mode, port, room_id))
     # parser = argparse.ArgumentParser()
     # parser.add_argument("--mode", choices=["individual", "tournament"], required=True,
     #                     help="게임 모드: 1:1 개인전 또는 4인 토너먼트")
