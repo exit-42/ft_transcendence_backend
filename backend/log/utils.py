@@ -32,6 +32,7 @@ def create_game(game_type):
     except Exception as e:
         return None
 
+
 def set_game_end(game_id):
     """
     @brief game의 진행상태를 종료로 변경하는 함수 (테스트 용도로만 사용할 임시 함수)
@@ -52,7 +53,7 @@ def set_game_end(game_id):
         game.isEnd = True
         game.save()
 
-        return 
+        return
 
     except Exception as e:
         return
@@ -116,4 +117,3 @@ def create_match_log(result):
 
     except Exception as e:
         return
-
