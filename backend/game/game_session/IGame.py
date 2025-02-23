@@ -12,7 +12,15 @@ class IGame(metaclass=ABCMeta):
     def __init__(self):
         self.waiting_queue = []
         self.game_start = False
-    
+        self.system = None
+        self.connect_to_websocket()
+
+    async def connect_to_websocket(self):
+        uri = os.getenv("DJANGO_WEBSOCKET_URI")
+        self.system = await websockets.connect(uri)
+        if self.system.close:
+            raise Exception('cannot connect with main server')
+
     @abstractmethod
     async def start_individual_match(player1, player2, path):
         pass
@@ -86,3 +94,15 @@ class IGame(metaclass=ABCMeta):
                 self.waiting_queue.remove(player_info)
                 part_msg = json.dumps({"type": "part", "data": username})
                 await self.broadcast_to_waiting(self.waiting_queue, part_msg)
+
+    async def send_log(self, result, player1_info, player2_info, rank):
+        msg = {
+            "type": "result",
+            "player_A_id": player1_info.user_id,
+            "player_B_id": player2_info.user_id,
+            "score_A": result.player1_score,
+            "score_B": result.player2_score,
+            "rank": rank,
+        }
+        json_msg = json.dumps(msg)
+        await self.system.send(json_msg)

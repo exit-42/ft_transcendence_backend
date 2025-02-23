@@ -36,6 +36,8 @@ class tournament(IGame):
                 task2 = asyncio.create_task(self.start_match(p3_info, p4_info, "tournament_round1_match2"))
                 result1 = await task1
                 result2 = await task2
+                await self.send_log(result1, p1_info, p2_info, 1)
+                await self.send_log(result2, p3_info, p4_info, 1)
 
                 winner1 = result1.winner
                 winner2 = result2.winner
@@ -57,11 +59,13 @@ class tournament(IGame):
                 final_match = PingPongMatch(winner1, winner2, "tournament_final", watch_list)
                 asyncio.create_task(self.player_handler(winner1, "", final_match, 1))
                 asyncio.create_task(self.player_handler(winner2, "", final_match, 2))
-                await final_match.run()
+                final_result = await final_match.run()
+                await self.send_log(final_result, winner1, winner2, 1)
                 # print(f"[Tournament] Tournament finished. Final Winner: Player {final_winner}")
                 for p in [p1_info, p2_info, p3_info, p4_info]:
                     try:
                         await p.close()
                     except:
                         pass
+                await self.system.close()
             await asyncio.sleep(0.1)

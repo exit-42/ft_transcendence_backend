@@ -1,6 +1,7 @@
 import IGame
 import PingPongMatch
 import asyncio
+import json
 from websockets import WebSocketServerProtocol
 from collections import namedtuple
 
@@ -10,7 +11,8 @@ class individual(IGame):
         match = PingPongMatch(player1_info, player2_info, match_id="individual")
         asyncio.create_task(self.player_handler(player1_info, match, 1))
         asyncio.create_task(self.player_handler(player2_info, match, 2))
-        winner = await match.run()
+        result = await match.run()
+        self.send_log(result, player1_info, player2_info, 1)
         # print(f"[Individual] Match finished. Winner: Player {winner}")
 
     async def matchmaker(self):
@@ -38,4 +40,5 @@ class individual(IGame):
                         await p_info.websocket.close()
                     except:
                         pass
+                await self.system.close()
             await asyncio.sleep(0.1)
