@@ -5,6 +5,7 @@ import time
 from collections import namedtuple
 
 PlayerInfo = namedtuple('PlayerInfo', ['websocket', 'user_id', 'username'])
+GameResultInfo = namedtuple('GameResultInfo', ['winner', 'player1_score', 'player2_score'])
 
 # ============================================
 # 상수 및 게임 화면 관련 설정
@@ -99,7 +100,11 @@ class PingPongMatch:
                     await self.broadcast_result() # Added await for async method
                     await asyncio.sleep(1)
         # 게임 종료 조건 (5점)
-        if self.player1_score >= 5 or self.player2_score >= 5: # Corrected to >= 5 for game over condition
+        if self.player1_score >= 5:
+            self.winner = 1
+            self.game_over = True
+        elif self.player2_score >= 5: # Corrected to >= 5 for game over condition
+            self.winner = 2
             self.game_over = True
 
     async def broadcast_state(self):
@@ -164,4 +169,11 @@ class PingPongMatch:
 
     async def run(self):
         await self.game_loop()
-        return self.winner
+        winner_info = None
+        if self.winner == 1:
+            winner_info = self.player1_info
+        else:
+            winner_info = self.player2_info
+        result = GameResultInfo(winner=winner_info, 
+            player1_score=self.player1_score, player2_score=self.player2_score)
+        return result

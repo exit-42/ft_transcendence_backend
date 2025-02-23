@@ -34,9 +34,11 @@ class tournament(IGame):
                 # 라운드1: 두 경기를 동시에 진행 (1:1)
                 task1 = asyncio.create_task(self.start_match(p1_info, p2_info, "tournament_round1_match1"))
                 task2 = asyncio.create_task(self.start_match(p3_info, p4_info, "tournament_round1_match2"))
-                winner1 = await task1
-                winner2 = await task2
+                result1 = await task1
+                result2 = await task2
 
+                winner1 = result1.winner
+                winner2 = result2.winner
                 # 결승 진출 알림 전송
                 final_msg = json.dumps({"type": "final_info", "player1": winner1.username, "player2": winner2.username })
                 try:
