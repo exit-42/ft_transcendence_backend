@@ -4,8 +4,10 @@ import random
 import time
 from collections import namedtuple
 
-PlayerInfo = namedtuple('PlayerInfo', ['websocket', 'user_id', 'username'])
-GameResultInfo = namedtuple('GameResultInfo', ['winner', 'player1_score', 'player2_score'])
+PlayerInfo = namedtuple("PlayerInfo", ["websocket", "user_id", "username"])
+GameResultInfo = namedtuple(
+    "GameResultInfo", ["winner", "player1_score", "player2_score"]
+)
 
 # ============================================
 # 상수 및 게임 화면 관련 설정
@@ -15,10 +17,11 @@ GAME_HEIGHT = 600
 FPS = 30
 FRAME_DURATION = 1 / FPS
 
-PADDLE_SPEED = 10           # 키 입력당 이동량
-PADDLE_WIDTH = 100          # 패들 너비 (중심 기준)
-PADDLE_Y_OFFSET = 30        # 패들이 화면 가장자리에서 떨어진 거리
-BALL_RADIUS = 10            # 공 반지름
+PADDLE_SPEED = 10  # 키 입력당 이동량
+PADDLE_WIDTH = 100  # 패들 너비 (중심 기준)
+PADDLE_Y_OFFSET = 30  # 패들이 화면 가장자리에서 떨어진 거리
+BALL_RADIUS = 10  # 공 반지름
+
 
 # ============================================
 # PingPongMatch 클래스 (개별 경기 로직)
@@ -50,7 +53,9 @@ class PingPongMatch:
         for player, queue in self.input_queues.items():
             while not queue.empty():
                 try:
-                    msg = await queue.get() # Changed to await queue.get() for async queue
+                    msg = (
+                        await queue.get()
+                    )  # Changed to await queue.get() for async queue
                     if msg.get("action") == "move":
                         direction = msg.get("direction")
                         if player == 1:
@@ -58,13 +63,19 @@ class PingPongMatch:
                                 self.paddle1_x -= PADDLE_SPEED
                             elif direction == "right":
                                 self.paddle1_x += PADDLE_SPEED
-                            self.paddle1_x = max(PADDLE_WIDTH / 2, min(GAME_WIDTH - PADDLE_WIDTH / 2, self.paddle1_x))
+                            self.paddle1_x = max(
+                                PADDLE_WIDTH / 2,
+                                min(GAME_WIDTH - PADDLE_WIDTH / 2, self.paddle1_x),
+                            )
                         elif player == 2:
                             if direction == "left":
                                 self.paddle2_x -= PADDLE_SPEED
                             elif direction == "right":
                                 self.paddle2_x += PADDLE_SPEED
-                            self.paddle2_x = max(PADDLE_WIDTH / 2, min(GAME_WIDTH - PADDLE_WIDTH / 2, self.paddle2_x))
+                            self.paddle2_x = max(
+                                PADDLE_WIDTH / 2,
+                                min(GAME_WIDTH - PADDLE_WIDTH / 2, self.paddle2_x),
+                            )
                 except asyncio.QueueEmpty:
                     break
 
@@ -74,7 +85,10 @@ class PingPongMatch:
         self.ball_pos[1] += self.ball_vel[1]
 
         # 좌우 벽 충돌: x 방향 반전
-        if self.ball_pos[0] <= BALL_RADIUS or self.ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
+        if (
+            self.ball_pos[0] <= BALL_RADIUS
+            or self.ball_pos[0] >= GAME_WIDTH - BALL_RADIUS
+        ):
             self.ball_vel[0] *= -1
 
         # 하단(플레이어1) 패들 충돌 체크 (공이 내려가는 경우)
@@ -86,7 +100,7 @@ class PingPongMatch:
                 else:
                     self.player2_score += 1
                     self.winner = 2
-                    await self.broadcast_result() # Added await for async method
+                    await self.broadcast_result()  # Added await for async method
                     await asyncio.sleep(1)
         # 상단(플레이어2) 패들 충돌 체크 (공이 올라가는 경우)
         elif self.ball_vel[1] < 0:
@@ -97,13 +111,13 @@ class PingPongMatch:
                 else:
                     self.player1_score += 1
                     self.winner = 1
-                    await self.broadcast_result() # Added await for async method
+                    await self.broadcast_result()  # Added await for async method
                     await asyncio.sleep(1)
         # 게임 종료 조건 (5점)
         if self.player1_score >= 5:
             self.winner = 1
             self.game_over = True
-        elif self.player2_score >= 5: # Corrected to >= 5 for game over condition
+        elif self.player2_score >= 5:  # Corrected to >= 5 for game over condition
             self.winner = 2
             self.game_over = True
 
@@ -129,10 +143,11 @@ class PingPongMatch:
 
         for watcher in self.watch_list:
             try:
-                await watcher[0].send(msg1) # Added await for websocket send and access websocket from tuple
+                await watcher[0].send(
+                    msg1
+                )  # Added await for websocket send and access websocket from tuple
             except:
                 pass
-
 
     async def broadcast_result(self):
         """게임 결과를 result DTO로 전송"""
@@ -153,7 +168,9 @@ class PingPongMatch:
             await self.player1_info.websocket.send(msg)
             await self.player2_info.websocket.send(msg)
             for watcher in self.watch_list:
-                await watcher[0].send(msg) # Added await for websocket send and access websocket from tuple
+                await watcher[0].send(
+                    msg
+                )  # Added await for websocket send and access websocket from tuple
         except Exception as e:
             pass
 
@@ -162,8 +179,8 @@ class PingPongMatch:
         while not self.game_over:
             start_time = time.time()
             await self.process_inputs()
-            await self.update_ball() # Added await for async method
-            await self.broadcast_state() # Added await for async method
+            await self.update_ball()  # Added await for async method
+            await self.broadcast_state()  # Added await for async method
             elapsed = time.time() - start_time
             await asyncio.sleep(max(0, FRAME_DURATION - elapsed))
 
@@ -174,6 +191,9 @@ class PingPongMatch:
             winner_info = self.player1_info
         else:
             winner_info = self.player2_info
-        result = GameResultInfo(winner=winner_info, 
-            player1_score=self.player1_score, player2_score=self.player2_score)
+        result = GameResultInfo(
+            winner=winner_info,
+            player1_score=self.player1_score,
+            player2_score=self.player2_score,
+        )
         return result

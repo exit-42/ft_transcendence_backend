@@ -5,6 +5,7 @@ import json
 from websockets import WebSocketServerProtocol
 from collections import namedtuple
 
+
 class individual(IGame):
 
     async def start_match(self, player1_info, player2_info):
@@ -18,7 +19,7 @@ class individual(IGame):
     async def matchmaker(self):
         while True:
             if len(self.waiting_queue) >= 2:
-            # 4명의 플레이어를 꺼냅니다.
+                # 4명의 플레이어를 꺼냅니다.
                 p1_info = self.waiting_queue.pop(0)
                 p2_info = self.waiting_queue.pop(0)
                 for player_info in [p1_info, p2_info]:

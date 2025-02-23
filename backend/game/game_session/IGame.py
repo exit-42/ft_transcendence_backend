@@ -8,6 +8,7 @@ import os
 import jwt
 from PingPongMatch import *
 
+
 class IGame(metaclass=ABCMeta):
     def __init__(self):
         self.waiting_queue = []
@@ -19,7 +20,7 @@ class IGame(metaclass=ABCMeta):
         uri = os.getenv("DJANGO_WEBSOCKET_URI")
         self.system = await websockets.connect(uri)
         if self.system.close:
-            raise Exception('cannot connect with main server')
+            raise Exception("cannot connect with main server")
 
     @abstractmethod
     async def start_individual_match(player1, player2, path):
@@ -44,14 +45,14 @@ class IGame(metaclass=ABCMeta):
             print(f"[{match.match_id}] Player {player_number} disconnected")
             match.game_over = True
             match.winner = 2 if player_number == 1 else 1
-    
+
     async def broadcast_to_waiting(self, waiting_list, message):
         for ws, _ in self.waiting_queue:
             try:
                 await ws.send(message)
             except:
                 pass
-    
+
     async def register(self, websocket: WebSocketServerProtocol, path: str):
         cookies = websocket.request_headers.get("Cookie", "")
         jwt_token = None
@@ -74,15 +75,21 @@ class IGame(metaclass=ABCMeta):
         username = None
         parsed = urllib.parse.urlparse(path)
         params = urllib.parse.parse_qs(parsed.query)
-        if "username" in params: # handle case when username is missing
+        if "username" in params:  # handle case when username is missing
             username = params.get("username")[0]
 
-        if not user_id or not username:  # If user_id or username is missing, close the connection
-            await websocket.close(code=1008, reason="Unauthorized")  # Close with a policy violation code
+        if (
+            not user_id or not username
+        ):  # If user_id or username is missing, close the connection
+            await websocket.close(
+                code=1008, reason="Unauthorized"
+            )  # Close with a policy violation code
             return
 
         # 대기열에 추가
-        player_info = PlayerInfo(websocket=websocket, user_id=user_id, username=username)
+        player_info = PlayerInfo(
+            websocket=websocket, user_id=user_id, username=username
+        )
         self.waiting_queue.append(player_info)
         join_msg = json.dumps({"type": "join", "data": username})
         await self.broadcast_to_waiting(self.waiting_queue, join_msg)
