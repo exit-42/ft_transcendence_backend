@@ -2,6 +2,7 @@ import multiprocessing
 import socket
 from log.utils import *
 
+
 class RoomManager:
     def __init__(self):
         self.rooms = {}  # 현재 존재하는 방 정보
@@ -15,7 +16,7 @@ class RoomManager:
         port = s.getsockname()[1]
         s.close()
         return port
-    
+
     def generate_room_id(self):
         if self.available_room_ids:
             return self.available_room_ids.pop(0)  # 삭제된 ID 중 가장 작은 값 사용
@@ -93,14 +94,14 @@ class RoomManager:
 
             # 방장이 나가면 다른 플레이어를 방장으로 설정
             if room["room_manager"] == player_name:
-                if room["players"]: 
+                if room["players"]:
                     room["room_manager"] = room["players"][0]
                 else:
                     return self.deleteRoom(room_id)  # 마지막 플레이어라면 방 삭제
 
             return room
         return None
-    
+
     def save_match(self, room_id, result):
         """
         @brief match에 대한 로그 추가
@@ -109,7 +110,7 @@ class RoomManager:
 
         @return
             - room_id
-        
+
         @detail 해당 room_id를 가진 방에 대한 로그 추가 및 모든 match가 끝난다면 종료로 상태 변환
         """
         room = self.rooms.get(room_id)
@@ -120,8 +121,9 @@ class RoomManager:
                 set_game_end(room["game_id"])
                 self.delete_room(room_id)
         else:
-            set_game_end(room["game_id"])   
+            set_game_end(room["game_id"])
             self.delete_room(room_id)
-       
+
+
 # 전역 인스턴스로 사용 (여러 consumer에서 공유 가능)
 room_manager = RoomManager()
