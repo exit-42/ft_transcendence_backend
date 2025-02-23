@@ -22,11 +22,12 @@ async def main_server(mode, port):
     server = await websockets.serve(game.register, "0.0.0.0", port)
     await server.wait_closed()
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["individual", "tournament"], required=True,
-                        help="게임 모드: 1:1 개인전 또는 4인 토너먼트")
-    parser.add_argument("--port", type=int, default=8765, help="서버 포트")
-    args = parser.parse_args()
-    asyncio.get_event_loop().run_until_complete(main_server(args.mode, args.port))
+def start_server(mode, port):
+    asyncio.get_event_loop().run_until_complete(main_server(mode, port))
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--mode", choices=["individual", "tournament"], required=True,
+    #                     help="게임 모드: 1:1 개인전 또는 4인 토너먼트")
+    # parser.add_argument("--port", type=int, default=8765, help="서버 포트")
+    # args = parser.parse_args()
+    # asyncio.get_event_loop().run_until_complete(main_server(args.mode, args.port))
 
