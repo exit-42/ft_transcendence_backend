@@ -1,20 +1,18 @@
 import asyncio
 import json
-import random
-import time
-import argparse
 import websockets
+import urllib.parse
+from websockets import WebSocketServerProtocol
 from abc import *
+import os
+import jwt
+from PingPongMatch import *
 
 class IGame(metaclass=ABCMeta):
     def __init__(self):
         self.waiting_queue = []
         self.game_start = False
-
-    @abstractmethod
-    async def register(websocket, path):
-        pass
-
+    
     @abstractmethod
     async def start_individual_match(player1, player2, path):
         pass
@@ -45,3 +43,46 @@ class IGame(metaclass=ABCMeta):
                 await ws.send(message)
             except:
                 pass
+    
+    async def register(self, websocket: WebSocketServerProtocol, path: str):
+        cookies = websocket.request_headers.get("Cookie", "")
+        jwt_token = None
+        for cookie in cookies.split("; "):
+            if cookie.startswith("jwt="):
+                jwt_token = cookie.split("=")[1]
+                break
+
+        user_id = None
+        if jwt_token:
+            secret_key = os.getenv("SECRET_KEY")
+            try:
+                decoded = jwt.decode(jwt_token, secret_key, algorithms=["HS256"])
+                user_id = decoded.get("user_id")
+            except jwt.ExpiredSignatureError:
+                pass
+            except jwt.InvalidTokenError:
+                pass
+
+        username = None
+        parsed = urllib.parse.urlparse(path)
+        params = urllib.parse.parse_qs(parsed.query)
+        if "username" in params: # handle case when username is missing
+            username = params.get("username")[0]
+
+        if not user_id or not username:  # If user_id or username is missing, close the connection
+            await websocket.close(code=1008, reason="Unauthorized")  # Close with a policy violation code
+            return
+
+        # 대기열에 추가
+        player_info = PlayerInfo(websocket=websocket, user_id=user_id, username=username)
+        self.waiting_queue.append(player_info)
+        join_msg = json.dumps({"type": "join", "data": username})
+        await self.broadcast_to_waiting(self.waiting_queue, join_msg)
+
+        try:
+            await websocket.wait_closed()
+        finally:
+            if self.game_start is False and player_info in self.waiting_queue:
+                self.waiting_queue.remove(player_info)
+                part_msg = json.dumps({"type": "part", "data": username})
+                await self.broadcast_to_waiting(self.waiting_queue, part_msg)
