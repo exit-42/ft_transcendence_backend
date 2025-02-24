@@ -9,7 +9,7 @@ services:
             - pgdata:/var/lib/postgresql/data
 
     redis:
-        image: redis:stable
+        image: redis:7
         networks:
             - intra
         ports:

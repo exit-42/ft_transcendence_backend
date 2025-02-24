@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
-from core.utils import authenticate_token
+from core.utils import authenticate_token, get_user_last_activity
 
 # Swagger
 from drf_yasg.utils import swagger_auto_schema
@@ -427,11 +427,14 @@ def get_follower_list(request):
 
         follow_list = []
         for follow in followers:
-            if follow.userA == user:
-                follow_user = follow.userB
-
+            follow_user = follow.userB
+            last_activity = get_user_last_activity(follow_user)
             follow_list.append(
-                {"nickname": follow_user.nickname, "imagePath": follow_user.imagePath}
+                {
+                    "nickname": follow_user.nickname,
+                    "imagePath": follow_user.imagePath,
+                    "lastActivity": last_activity,
+                }
             )
         return JsonResponse({"data": follow_list}, status=200)
     except Exception as e:
