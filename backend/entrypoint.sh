@@ -19,4 +19,6 @@ if not User.objects.filter(username=username).exists():
     print(f'Superuser \"{username}\" created.');
 "
 
+python3 manage.py loaddata account/fixtures/user_dummy.json
+
 exec "$@"
