@@ -214,3 +214,16 @@ CSRF_TRUSTED_ORIGINS = [
 MEDIA_ROOT = "/app/media/"
 
 MEDIA_URL = "/media/"
+
+
+# REDIS
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}

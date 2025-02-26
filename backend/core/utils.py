@@ -4,8 +4,45 @@ from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+import redis
+from django.utils.timezone import now
 
 User = get_user_model()
+
+redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
+
+
+def update_user_last_activity(user_id):
+    """
+    @brief 유저의 마지막 활동시간 생성 및 갱신 함수
+
+    @param
+        - user_id(User의 pk)
+
+    @return
+        - 없음
+
+    @detail
+        - Redis에 저장된 유저의 마지막 활동시간은 30분 뒤 자동삭제 됩니다.
+    """
+
+    timestamp = now().isoformat()
+    redis_client.set(f"user:{user_id}", timestamp, ex=1800)
+
+
+def get_user_last_activity(user_id):
+    """
+    @brief 유저의 마지막 활동시간 조회 함수
+
+    @param
+        - user_id(User의 pk)
+
+    @return
+        - 유저의 활동기록이 Redis에 존재할 때 : iso format time
+        - 유저의 활동기록이 Redis에 없을 때 : None
+    """
+
+    return redis_client.get(f"user:{user_id}")
 
 
 def authenticate_token(request):
@@ -70,6 +107,8 @@ def authenticate_token(request):
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         return None, JsonResponse({"message": "User not found"}, status=401)
+
+    update_user_last_activity(user.id)
 
     return user, None
 
