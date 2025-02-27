@@ -5,5 +5,7 @@ requests
 djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
+drf-yasg
 channels[daphne]
 channels_redis
+websockets

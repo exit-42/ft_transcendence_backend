@@ -26,9 +26,50 @@ SECRET_KEY = "django-insecure-)=(2r4#3z=b8jiut91ca9x3@vgf^_$_sa+w_dsr2+dt!yj7i2=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost","127.0.0.1"]
 
 AUTH_USER_MODEL = "account.User"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {module}: {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': 'django_warning.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'myapp': {  # 특정 앱에 대한 로거 설정
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
 
 # Application definition
 
@@ -40,11 +81,15 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "drf_yasg",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
     "account",
-    "game",
+    "authentication",
+    "follow",
+    "log",
+    "room",
 ]
 
 REST_FRAMEWORK = {
@@ -215,3 +260,9 @@ CSRF_TRUSTED_ORIGINS = [
     os.environ.get("FRONT_SERVER_URL"),
     os.environ.get("BACK_SERVER_URL"),
 ]
+
+
+# MEDIA
+MEDIA_ROOT = "/app/media/"
+
+MEDIA_URL = "/media/"

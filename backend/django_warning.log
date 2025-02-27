@@ -1,0 +1,6 @@
+[WARNING] 2025-02-27 07:38:34,587 log: Unknown Status Code: /room/
+[WARNING] 2025-02-27 07:38:34,588 runserver: HTTP POST /room/ 452 [0.01, 172.18.0.1:59774]
+[WARNING] 2025-02-27 07:54:20,560 log: Unknown Status Code: /room/
+[WARNING] 2025-02-27 07:54:20,561 runserver: HTTP GET /room/ 452 [0.01, 172.18.0.1:60076]
+[WARNING] 2025-02-27 08:07:21,931 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 08:07:21,934 runserver: HTTP POST /account/login/ 401 [0.02, 172.18.0.5:52310]

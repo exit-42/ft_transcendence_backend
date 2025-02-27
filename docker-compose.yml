@@ -12,6 +12,7 @@ services:
         build: ./backend
         ports:
             - "8000:8000"
+            - "53200-53300:53200-53300"
         networks:
             - intra
         depends_on:

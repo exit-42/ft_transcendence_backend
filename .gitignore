@@ -12,3 +12,5 @@ migrations/
 
 # Makefile 제외
 Makefile
+
+.DS_Store

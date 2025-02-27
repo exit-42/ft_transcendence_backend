@@ -15,7 +15,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "transcendence.settings")
-from game.routing import websocket_urlpatterns
+from room.routing import websocket_urlpatterns
 
 django_asgi_app = get_asgi_application()
 
