@@ -78,24 +78,25 @@ class RoomManager:
         return False
 
     def join_room(self, room_id, user):
-        room = self.rooms.get(room_id)
+        room = self.rooms.get(int(room_id))
         if room and user.nickname not in room["candidate"]:
-            room["candidate"][user.nickname] = user.id
-            return True
-        return False
+            room["candidate"][user.nickname] = user
+            return room
+        return None
     
     def accept_room(self, room_id, player_name):
         room = self.rooms.get(room_id)
         logger.info(room["candidate"])
         if room and player_name in room["candidate"]:
-            room["players"][player_name] = room["candidate"][player_name]
+            user = room["candidate"][player_name]
+            room["players"][player_name] = user
             del room["candidate"][player_name]
             if (room["player_number"]) == 0:
                 room["room_manager"] = player_name
             room["player_number"] += 1
             logger.info("accepted : " + player_name)
-            return True
-        return False
+            return user.imagePath, user.winCnt, user.loseCnt
+        return None
 
     def exit_room(self, room_id, player_name):
         """
@@ -106,7 +107,7 @@ class RoomManager:
         @return
             - room 에 대한 정보 객체
         """
-        room = self.rooms.get(room_id)
+        room = self.rooms.get(int(room_id))
         if room:
             if player_name in room["players"]:
                 room["players"].remove(player_name)
@@ -136,8 +137,8 @@ class RoomManager:
         @detail 해당 room_id를 가진 방에 대한 로그 추가 및 모든 match가 끝난다면 종료로 상태 변환
         """
         room = self.rooms.get(room_id)
-        result["user_A_id"] = room["room_id"]["players"][result["user_A_name"]]
-        result["user_B_id"] = room["room_id"]["players"][result["user_B_name"]]
+        result["user_A_id"] = room["room_id"]["players"][result["user_A_name"]].id
+        result["user_B_id"] = room["room_id"]["players"][result["user_B_name"]].id
         result["gamd_id"] = room["game_id"]
         create_match_log(result)
         if room["mode"] == "tournament":

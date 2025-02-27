@@ -4,7 +4,7 @@ import random
 import time
 from collections import namedtuple
 
-PlayerInfo = namedtuple("PlayerInfo", ["websocket", "username"])
+PlayerInfo = namedtuple("PlayerInfo", ["websocket", "username", "imagePath", "winCnt", "loseCnt"])
 GameResultInfo = namedtuple(
     "GameResultInfo", ["winner", "player1_score", "player2_score"]
 )

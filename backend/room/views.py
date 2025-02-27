@@ -20,6 +20,41 @@ from rest_framework.parsers import MultiPartParser, FormParser  # Import parsers
 
 
 class roomView(APIView):
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "mode",
+                openapi.IN_QUERY,
+                description="game mode(individual or tournament)",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "games": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "roomId": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=102
+                            ),
+                            "playerCount": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=1
+                            ),
+                            "roomManager": openapi.Schema(
+                                type=openapi.TYPE_STRING,
+                                example="userName",
+                            ),
+                        },
+                    ),
+                ),
+                },
+            ),
+        },
+    )
     def get(self, request):
         """ 방 목록 조회 (특정 모드에 해당하는 방 필터링) """
         try:
@@ -31,12 +66,13 @@ class roomView(APIView):
 
             rooms = [
                 {
-                    "room_id": room_id,
-                    "player_count": room_data["player_number"],
-                    "room_manager": room_data["room_manager"]
+                    "roomId": room_id,
+                    "playerCount": room_data["player_number"],
+                    "roomManager": room_data["room_manager"]
                 }
                 for room_id, room_data in room_manager.rooms.items()
-                if mode is None or room_data.get("mode") == mode  # mode 필터링 (없으면 모든 방)
+                if mode is None or room_data.get("mode") == mode
+                and room_data["player_number"] > 0 
             ]
             
             return JsonResponse({"data": rooms}, status=200)
@@ -96,8 +132,33 @@ class roomView(APIView):
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
 
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "room_id": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="room_id"
+                ),
+            },
+            required=["room_id"],
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "roomId": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="1"
+                    ),
+                    "port": openapi.Schema(
+                        type=openapi.TYPE_STRING, example="10001"
+                    ),
+                },
+            ),
+        },
+    )
     def patch(self, request):
-        """ 기존 방 입장 (room_id와 player_name 필요) """
+        """ 기존 방 입장 (room_id 필요) """
         try:
             user, token_response = authenticate_token(request)
             if token_response:
@@ -105,17 +166,16 @@ class roomView(APIView):
             
             data = json.loads(request.body)
             room_id = data.get("room_id")
-            player_name = user.nickname
 
             if room_id is None:
                 return JsonResponse({"message": "need room_id"}, status=400)
 
-            room_data = room_manager.join_room(room_id, player_name)
+            room_data = room_manager.join_room(room_id, user)
             if not room_data:
                 return JsonResponse({"message": "cannot join room"}, status=404)
 
             return JsonResponse({
-                "room_id": room_id,
+                "roomId": room_id,
                 "port": room_data["socket_port_number"]
             }, status=200)
 

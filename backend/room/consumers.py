@@ -34,12 +34,17 @@ class GameConsumer(AsyncWebsocketConsumer):
                     return
 
                 if message_type == "join":
-                    result = room_manager.accept_room(room_id, player)
-                    if not result:
+                    img_path, win_cnt, lose_cnt = room_manager.accept_room(room_id, player)
+                    if img_path is None or win_cnt is None or lose_cnt is None:
                         await self.send(json.dumps({"type": "error"}))
                         logger.info("status : error " + text_data)
                     else:
-                        await self.send(json.dumps({"type": "success"}))
+                        await self.send(json.dumps({
+                        "type": "success",
+                        "img_path": img_path,
+                        "winCnt": win_cnt,
+                        "loseCnt": lose_cnt
+                    }))
                 else:
                     room_data = room_manager.exit_room(room_id, player)
                     if not room_data:

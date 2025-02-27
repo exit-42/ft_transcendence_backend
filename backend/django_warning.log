@@ -4,3 +4,61 @@
 [WARNING] 2025-02-27 07:54:20,561 runserver: HTTP GET /room/ 452 [0.01, 172.18.0.1:60076]
 [WARNING] 2025-02-27 08:07:21,931 log: Unauthorized: /account/login/
 [WARNING] 2025-02-27 08:07:21,934 runserver: HTTP POST /account/login/ 401 [0.02, 172.18.0.5:52310]
+[WARNING] 2025-02-27 08:26:05,334 log: Unknown Status Code: /account/login/
+[WARNING] 2025-02-27 08:26:05,335 runserver: HTTP POST /account/login/ 452 [0.01, 172.18.0.5:50782]
+[WARNING] 2025-02-27 08:26:05,420 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 08:26:05,422 runserver: HTTP POST /account/login/ 401 [0.02, 172.18.0.5:50784]
+[WARNING] 2025-02-27 08:26:06,580 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 08:26:06,581 runserver: HTTP POST /account/login/ 401 [0.02, 172.18.0.5:50788]
+[WARNING] 2025-02-27 08:50:24,376 log: Unknown Status Code: /room/
+[WARNING] 2025-02-27 08:50:24,377 runserver: HTTP POST /room/ 452 [0.01, 172.18.0.1:59486]
+[WARNING] 2025-02-27 09:05:35,417 log: Unknown Status Code: /room/
+[WARNING] 2025-02-27 09:05:35,418 runserver: HTTP POST /room/ 452 [0.01, 172.18.0.1:59926]
+[WARNING] 2025-02-27 09:20:35,977 log: Unknown Status Code: /room/
+[WARNING] 2025-02-27 09:20:35,978 runserver: HTTP POST /room/ 452 [0.01, 172.18.0.1:60156]
+[WARNING] 2025-02-27 09:27:59,022 log: Unknown Status Code: /account/login/
+[WARNING] 2025-02-27 09:27:59,023 runserver: HTTP POST /account/login/ 452 [0.01, 172.18.0.5:51844]
+[WARNING] 2025-02-27 09:27:59,048 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 09:27:59,049 runserver: HTTP POST /account/login/ 401 [0.02, 172.18.0.5:51846]
+[WARNING] 2025-02-27 09:28:08,886 log: Not Found: /authentication/local-auth/signin/
+[WARNING] 2025-02-27 09:28:08,887 runserver: HTTP POST /authentication/local-auth/signin/ 404 [0.01, 172.18.0.5:51850]
+[WARNING] 2025-02-27 09:31:03,546 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 09:31:03,549 runserver: HTTP POST /account/login/ 401 [0.02, 172.18.0.5:51948]
+[WARNING] 2025-02-27 09:32:13,790 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 09:32:13,791 runserver: HTTP POST /account/login/ 401 [0.01, 172.18.0.5:52014]
+[WARNING] 2025-02-27 09:40:29,829 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-02-27 09:40:29,830 log: Unknown Status Code: /account/login/
+[WARNING] 2025-02-27 09:40:29,832 runserver: HTTP GET /follow/list/ 452 [0.02, 172.18.0.5:52236]
+[WARNING] 2025-02-27 09:40:29,834 runserver: HTTP POST /account/login/ 452 [0.02, 172.18.0.5:52238]
+[WARNING] 2025-02-27 09:41:49,840 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 09:41:49,843 runserver: HTTP POST /account/login/ 401 [0.01, 172.18.0.5:52312]
+[ERROR] 2025-02-27 09:53:50,701 runserver: HTTP GET /follow/list/ 500 [0.69, 172.18.0.5:52640]
+[ERROR] 2025-02-27 09:53:50,704 runserver: HTTP POST /account/login/ 500 [0.69, 172.18.0.5:52642]
+[ERROR] 2025-02-27 09:53:53,720 runserver: HTTP GET /follow/list/ 500 [0.35, 172.18.0.5:52666]
+[ERROR] 2025-02-27 09:53:53,722 runserver: HTTP POST /account/login/ 500 [0.35, 172.18.0.5:52668]
+[ERROR] 2025-02-27 09:53:55,732 runserver: HTTP GET /follow/list/ 500 [0.92, 172.18.0.5:52670]
+[ERROR] 2025-02-27 09:53:55,735 runserver: HTTP POST /account/login/ 500 [0.92, 172.18.0.5:52672]
+[ERROR] 2025-02-27 09:54:16,788 runserver: HTTP POST /account/logout/ 500 [0.85, 172.18.0.5:52674]
+[ERROR] 2025-02-27 09:54:18,799 runserver: HTTP POST /account/logout/ 500 [0.13, 172.18.0.5:52676]
+[ERROR] 2025-02-27 09:54:19,805 runserver: HTTP POST /account/logout/ 500 [0.35, 172.18.0.5:52678]
+[ERROR] 2025-02-27 09:54:19,807 runserver: HTTP POST /account/logout/ 500 [0.03, 172.18.0.5:52680]
+[ERROR] 2025-02-27 09:54:20,814 runserver: HTTP POST /account/logout/ 500 [0.42, 172.18.0.5:52682]
+[ERROR] 2025-02-27 09:54:20,816 runserver: HTTP POST /account/logout/ 500 [0.24, 172.18.0.5:52684]
+[ERROR] 2025-02-27 09:54:20,818 runserver: HTTP POST /account/logout/ 500 [0.06, 172.18.0.5:52686]
+[WARNING] 2025-02-27 09:55:33,747 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-02-27 09:55:33,748 log: Unknown Status Code: /account/login/
+[WARNING] 2025-02-27 09:55:33,749 runserver: HTTP GET /follow/list/ 452 [0.05, 172.18.0.5:52732]
+[WARNING] 2025-02-27 09:55:33,750 runserver: HTTP POST /account/login/ 452 [0.05, 172.18.0.5:52734]
+[WARNING] 2025-02-27 09:55:39,760 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 09:55:39,763 runserver: HTTP POST /account/login/ 401 [0.01, 172.18.0.5:52746]
+[WARNING] 2025-02-27 09:55:45,256 log: Unauthorized: /account/login/
+[WARNING] 2025-02-27 09:55:45,258 runserver: HTTP POST /account/login/ 401 [0.01, 172.18.0.5:52748]
+[WARNING] 2025-02-27 09:55:59,217 log: Unknown Status Code: /account/login/
+[WARNING] 2025-02-27 09:55:59,218 runserver: HTTP POST /account/login/ 452 [0.01, 172.18.0.5:52786]
+[WARNING] 2025-02-27 09:58:59,991 log: Not Found: /room/
+[WARNING] 2025-02-27 09:58:59,992 runserver: HTTP PATCH /room/ 404 [0.01, 172.18.0.1:61420]
+[ERROR] 2025-02-27 10:01:52,990 runserver: HTTP PATCH /room/ 500 [0.75, 172.18.0.1:61424]
+[WARNING] 2025-02-27 10:02:54,762 log: Not Found: /room/
+[WARNING] 2025-02-27 10:02:54,763 runserver: HTTP PATCH /room/ 404 [0.02, 172.18.0.1:61498]
+[WARNING] 2025-02-27 10:04:28,109 log: Not Found: /room/
+[WARNING] 2025-02-27 10:04:28,110 runserver: HTTP PATCH /room/ 404 [0.01, 172.18.0.1:61502]
