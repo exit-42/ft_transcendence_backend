@@ -320,7 +320,7 @@ def change_profile_image(request):
             )
 
         front_server_url = os.environ.get("FRONT_SERVER_URL", "").rstrip("/")
-        default_image_url = f"{front_server_url}/static/image/default.jpeg"
+        default_image_url = f"{front_server_url}/src/imgs/default.jpeg"
 
         if user.imagePath and user.imagePath != default_image_url:
             if user.imagePath.startswith(front_server_url):

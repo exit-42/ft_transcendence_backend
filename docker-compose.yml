@@ -30,7 +30,7 @@ services:
             - .env
         volumes:
             - ./backend:/app/backend
-            - ../ft_transcendence_frontend/nginx/media:/app/media
+            - ../ft_transcendence_front/nginx/media:/app/media
 
 networks:
     intra:
