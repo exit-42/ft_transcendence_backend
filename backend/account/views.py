@@ -322,8 +322,14 @@ def change_profile_image(request):
         front_server_url = os.environ.get("FRONT_SERVER_URL", "").rstrip("/")
         default_image_url = f"{front_server_url}/src/imgs/default.jpeg"
 
-        if user.imagePath and user.imagePath != default_image_url and not user.imagePath.startswith("https://cdn.intra.42.fr"):
-            old_image_path = user.imagePath.replace(f"{front_server_url}/media/", "").lstrip("/")
+        if (
+            user.imagePath
+            and user.imagePath != default_image_url
+            and not user.imagePath.startswith("https://cdn.intra.42.fr")
+        ):
+            old_image_path = user.imagePath.replace(
+                f"{front_server_url}/media/", ""
+            ).lstrip("/")
 
             if default_storage.exists(old_image_path):
                 try:
