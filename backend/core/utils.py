@@ -91,6 +91,6 @@ def generate_random_nickname():
     """
     while True:
         random_number = f"{random.randint(10000, 99999):05}"
-        nickname = f"#{random_number}"
+        nickname = f"{random_number}"
         if not User.objects.filter(nickname=nickname).exists():
             return nickname
