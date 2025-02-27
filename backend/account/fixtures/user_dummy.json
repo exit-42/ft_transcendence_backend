@@ -2,7 +2,7 @@
     {
       "model": "account.user",
       "fields": {
-        "imagePath": "https://localhost/static/image/default.jpeg",
+        "imagePath": "https://localhost/src/imgs/default.jpeg",
         "nickname": "닉네임1",
         "winCnt": 3,
         "loseCnt": 2
@@ -11,7 +11,7 @@
     {
       "model": "account.user",
       "fields": {
-        "imagePath": "https://localhost/static/image/default.jpeg",
+        "imagePath": "https://localhost/src/imgs/default.jpeg",
         "nickname": "닉네임2",
         "winCnt": 5,
         "loseCnt": 1
@@ -20,7 +20,7 @@
     {
       "model": "account.user",
       "fields": {
-        "imagePath": "https://localhost/static/image/default.jpeg",
+        "imagePath": "https://localhost/src/imgs/default.jpeg",
         "nickname": "닉네임3",
         "winCnt": 2,
         "loseCnt": 4
@@ -29,7 +29,7 @@
     {
       "model": "account.user",
       "fields": {
-        "imagePath": "https://localhost/static/image/default.jpeg",
+        "imagePath": "https://localhost/src/imgs/default.jpeg",
         "nickname": "닉네임4",
         "winCnt": 0,
         "loseCnt": 0
@@ -38,7 +38,7 @@
     {
       "model": "account.user",
       "fields": {
-        "imagePath": "https://localhost/static/image/default.jpeg",
+        "imagePath": "https://localhost/src/imgs/default.jpeg",
         "nickname": "닉네임5",
         "winCnt": 10,
         "loseCnt": 0

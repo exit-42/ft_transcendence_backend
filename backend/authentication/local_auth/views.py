@@ -610,7 +610,7 @@ def local_auth_sign_up(request):
         random_nickname = generate_random_nickname()
         user = User.objects.create(
             email=user_email,
-            imagePath=os.environ.get("FRONT_SERVER_URL") + "/static/image/default.jpeg",
+            imagePath=os.environ.get("FRONT_SERVER_URL") + "/src/imgs/default.jpeg",
             nickname=random_nickname,
         )
         hashed_password = make_password(local_password)

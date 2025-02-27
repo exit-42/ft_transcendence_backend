@@ -428,7 +428,7 @@ def get_follower_list(request):
         follow_list = []
         for follow in followers:
             follow_user = follow.userB
-            last_activity = get_user_last_activity(follow_user)
+            last_activity = get_user_last_activity(follow_user.id)
             follow_list.append(
                 {
                     "nickname": follow_user.nickname,
