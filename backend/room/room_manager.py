@@ -110,20 +110,20 @@ class RoomManager:
         room = self.rooms.get(int(room_id))
         if room:
             if player_name in room["players"]:
-                room["players"].remove(player_name)
+                del room["players"][player_name]
             if player_name in room["candidate"]:
-                room["candidate"].remove(player_name)
+                del room["candidate"][player_name]
             room["player_number"] -= 1
 
             # 방장이 나가면 다른 플레이어를 방장으로 설정
             if room["room_manager"] == player_name:
-                if list(room["players"])[0]:
+                if len(list(room["players"])) > 0:
                     room["room_manager"] = list(room["players"])[0]
                 else:
-                    return self.deleteRoom(room_id)  # 마지막 플레이어라면 방 삭제
-
-            return room
-        return None
+                    logger.info("delete start")
+                    return self.delete_room(room_id)  # 마지막 플레이어라면 방 삭제
+            return True
+        return False
 
     def save_match(self, room_id, result):
         """
@@ -137,9 +137,9 @@ class RoomManager:
         @detail 해당 room_id를 가진 방에 대한 로그 추가 및 모든 match가 끝난다면 종료로 상태 변환
         """
         room = self.rooms.get(room_id)
-        result["user_A_id"] = room["room_id"]["players"][result["user_A_name"]].id
-        result["user_B_id"] = room["room_id"]["players"][result["user_B_name"]].id
-        result["gamd_id"] = room["game_id"]
+        result["player_A_id"] = room["players"][result["player_A_name"]].id
+        result["player_B_id"] = room["players"][result["player_B_name"]].id
+        result["game_id"] = room["game_id"]
         create_match_log(result)
         if room["mode"] == "tournament":
             if result["rank"] == 2:

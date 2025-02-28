@@ -4,6 +4,7 @@ import uuid
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .room_manager import *
+from asgiref.sync import sync_to_async
 
 import logging
 
@@ -40,14 +41,16 @@ class GameConsumer(AsyncWebsocketConsumer):
                         logger.info("status : error " + text_data)
                     else:
                         await self.send(json.dumps({
-                        "type": "success",
-                        "img_path": img_path,
-                        "winCnt": win_cnt,
-                        "loseCnt": lose_cnt
-                    }))
+                            "type": "success",
+                            "img_path": img_path,
+                            "winCnt": win_cnt,
+                            "loseCnt": lose_cnt
+                        }))
                 else:
-                    room_data = room_manager.exit_room(room_id, player)
-                    if not room_data:
+                    logger.info("exit start")
+                    success = room_manager.exit_room(room_id, player)
+                    if not success:
+                        logger.info("exit fail")
                         await self.send(json.dumps({"type": "error"}))
             elif message_type == "result":
                 room_id = data.get("room_id")
@@ -56,8 +59,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 score_A = data.get("score_A")
                 score_B = data.get("score_B")
                 rank = data.get("rank")
+                logger.info("cunsumer : setting result : " + str(room_id))
                 if player_A_name is None or player_B_name is None or score_A is None or score_B is None or rank is None:
                     await self.send(json.dumps({"type": "error"}))
+                    logger.info("cunsumer : wrong argunemt")
                     return  # 에러 발생 시 함수 종료
 
                 result = {
@@ -67,7 +72,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                     "score_B": score_B,
                     "rank": rank,
                 }
-                room_manager.save_match(room_id, result)
+                # room_manager.save_match(room_id, result)
+                await sync_to_async(room_manager.save_match)(room_id, result)
             else:
                 await self.send(json.dumps({"type": "error"}))
 

@@ -4,9 +4,8 @@ import websockets
 import urllib.parse
 from abc import *
 import os
-import jwt
 from .PingPongMatch import *
-
+import sys
 
 class IGame(metaclass=ABCMeta):
     def __init__(self, room_id):
@@ -31,20 +30,21 @@ class IGame(metaclass=ABCMeta):
     @abstractmethod
     async def matchmaker():
         pass
-
-    async def player_handler(websocket, path, match, player_number):
+        
+    async def player_handler(self, websocket, match, player_number):
         """
         각 플레이어 소켓에서 들어오는 메시지를 읽어 해당 플레이어 큐(match.input_queues)에 저장
         """
         try:
-            async for message in websocket:
+            while True:
                 try:
+                    message = await websocket.recv()
                     data = json.loads(message)
                     await match.input_queues[player_number].put(data)
                 except json.JSONDecodeError:
                     continue
         except websockets.exceptions.ConnectionClosed:
-            print(f"[{match.match_id}] Player {player_number} disconnected")
+            print("websocket error!")
             match.game_over = True
             match.winner = 2 if player_number == 1 else 1
 
@@ -110,6 +110,15 @@ class IGame(metaclass=ABCMeta):
         finally:
             # 연결 종료 시 waiting_queue에서 제거 및 전체 대기열 업데이트 전송
             if self.game_start is False and player_info in self.waiting_queue:
+                exit_msg = json.dumps(
+                    {"type": "exit", "room_id": self.room_id, "player": username}
+                )
+                await self.system.send(exit_msg)
+                system_msg = await self.system.recv()
+                system_res = json.loads(system_msg)
+                if system_res.get("type") == "error":
+                    print("fatal error!!!!")
+                    sys.exit(1)
                 self.waiting_queue.remove(player_info)
                 updated_queue_msg = json.dumps({
                     "type": "join",

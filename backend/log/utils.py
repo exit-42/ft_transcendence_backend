@@ -6,6 +6,9 @@ User = get_user_model()
 
 from log.models import Game, Match
 
+import logging
+
+logger = logging.getLogger('django')
 
 def create_game(game_type):
     """
@@ -48,6 +51,7 @@ def set_game_end(game_id):
         try:
             game = Game.objects.get(gameId=game_id)
         except Game.DoesNotExist:
+            logger.info("log(set_game_end) : game does not exist : " + game_id)
             return
 
         game.isEnd = True
@@ -71,6 +75,7 @@ def create_match_log(result):
     @details
     매치(1대1)가 종료될 때 호출하는 내부 API
     """
+    logger.info("create match log start")
     try:
 
         required_fields = [
@@ -81,7 +86,10 @@ def create_match_log(result):
             "game_id",
             "rank",
         ]
+        for key, value in result.items():
+            logger.info(str(key) + " : " + str(value))
         if not all(field in result for field in required_fields):
+            logger.info("log(create_match_log) : wrong argunemt")
             return
 
         player_A_id = result["player_A_id"]
@@ -95,11 +103,13 @@ def create_match_log(result):
             player_A = User.objects.get(id=player_A_id)
             player_B = User.objects.get(id=player_B_id)
         except User.DoesNotExist:
+            logger.info("log(create_match_log) : user does not exist")
             return
 
         try:
             game = Game.objects.get(gameId=game_id)
         except Game.DoesNotExist:
+            logger.info("log(create_match_log) : game does not exist")
             return
 
         if game.isEnd == True:
@@ -113,7 +123,10 @@ def create_match_log(result):
             game=game,
             rank=rank,
         )
+        logger.info("log(create_match_log) : match created")
         return
 
     except Exception as e:
+        logger.info("log(create_match_log) : fatal error!")
+        logger.info("log(create_match_log) : " + str(e))
         return
