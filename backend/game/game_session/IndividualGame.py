@@ -19,17 +19,6 @@ class individual(IGame):
     async def matchmaker(self):
         while True:
             if len(self.waiting_queue) >= 2:
-                # 4명의 플레이어를 꺼냅니다.
-                p1_info = self.waiting_queue.pop(0)
-                p2_info = self.waiting_queue.pop(0)
-                for player_info in [p1_info, p2_info]:
-                    if not player_info.websocket.open:
-                        for player_check_info in [p1_info, p2_info]:
-                            if player_check_info.websocket.open:
-                                self.waiting_queue.insert(0, player_check_info)
-                                break
-                        continue
-            if len(self.waiting_queue) >= 2:
                 # 대기 중인 플레이어 2명을 꺼내서 경기를 시작합니다.
                 p1_info = self.waiting_queue.pop(0)
                 p2_info = self.waiting_queue.pop(0)

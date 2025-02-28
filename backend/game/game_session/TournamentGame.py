@@ -21,13 +21,6 @@ class tournament(IGame):
                 p2_info = self.waiting_queue.pop(0)
                 p3_info = self.waiting_queue.pop(0)
                 p4_info = self.waiting_queue.pop(0)
-                for player in [p1_info, p2_info, p3_info, p4_info]:
-                    if not player.websocket.open:
-                        for player_check in [p1_info, p2_info, p3_info, p4_info]:
-                            if player_check.websocket.open:
-                                self.waiting_queue.insert(player_check)
-                                break
-                        continue
 
                 self.game_start = True
                 # print("[Tournament] Starting round 1 matches.")
