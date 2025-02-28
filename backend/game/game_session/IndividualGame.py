@@ -13,7 +13,7 @@ class individual(IGame):
         asyncio.create_task(self.player_handler(player1_info.websocket, match, 1))
         asyncio.create_task(self.player_handler(player2_info.websocket, match, 2))
         result = await match.run()
-        self.send_log(result, player1_info, player2_info, 1)
+        await self.send_log(result, player1_info, player2_info, 1)
         # print(f"[Individual] Match finished. Winner: Player {winner}")
 
     async def matchmaker(self):

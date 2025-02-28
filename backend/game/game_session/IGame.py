@@ -15,7 +15,6 @@ class IGame(metaclass=ABCMeta):
         self.game_start = False
         self.system = None
         self.room_id = room_id
-        self.connect_to_websocket()
 
     async def connect_to_websocket(self):
         uri = os.getenv("DJANGO_WEBSOCKET_URI")
@@ -45,9 +44,14 @@ class IGame(metaclass=ABCMeta):
                 except json.JSONDecodeError:
                     continue
         except websockets.exceptions.ConnectionClosed:
-            print(f"[{match.match_id}] Player {player_number} disconnected")
-            match.game_over = True
-            match.winner = 2 if player_number == 1 else 1
+            if match.game_over == False:
+                match.game_over = True
+                if player_number == 1:
+                    match.winner = 2
+                    match.player2_score = 5
+                else:
+                    match.winner = 1
+                    match.player2_score = 5
 
     async def broadcast_to_waiting(self, message):
         for player in self.waiting_queue:

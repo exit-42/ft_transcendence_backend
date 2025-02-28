@@ -52,6 +52,7 @@ class tournament(IGame):
                 except:
                     pass
 
+                await asyncio.sleep(3)
                 watch_list = []
                 for p in [p1_info, p2_info, p3_info, p4_info]:
                     if p is not winner1 and p is not winner2:
