@@ -4,7 +4,7 @@ import random
 import time
 from collections import namedtuple
 
-PlayerInfo = namedtuple("PlayerInfo", ["websocket", "user_id", "username"])
+PlayerInfo = namedtuple("PlayerInfo", ["websocket", "username", "imagePath", "winCnt", "loseCnt"])
 GameResultInfo = namedtuple(
     "GameResultInfo", ["winner", "player1_score", "player2_score"]
 )
@@ -27,14 +27,13 @@ BALL_RADIUS = 10  # 공 반지름
 # PingPongMatch 클래스 (개별 경기 로직)
 # ============================================
 class PingPongMatch:
-    def __init__(self, players, match_id="", watch_list=[]):
+    def __init__(self, players, watch_list=[]):
         # players는 이제 PlayerInfo namedtuple의 리스트로 받습니다.
         self.player1_info = players[0]  # 하단 패들 (플레이어 1): PlayerInfo namedtuple
         self.player2_info = players[1]  # 상단 패들 (플레이어 2): PlayerInfo namedtuple
         self.watch_list = watch_list
         self.player1_score = 0
         self.player2_score = 0
-        self.match_id = match_id
 
         # 각 플레이어의 입력 메시지를 저장할 큐
         self.input_queues = {1: asyncio.Queue(), 2: asyncio.Queue()}

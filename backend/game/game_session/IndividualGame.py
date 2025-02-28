@@ -9,9 +9,9 @@ from collections import namedtuple
 class individual(IGame):
 
     async def start_match(self, player1_info, player2_info):
-        match = PingPongMatch(player1_info, player2_info, match_id="individual")
-        asyncio.create_task(self.player_handler(player1_info, match, 1))
-        asyncio.create_task(self.player_handler(player2_info, match, 2))
+        match = PingPongMatch([player1_info, player2_info])
+        asyncio.create_task(self.player_handler(player1_info.websocket, match, 1))
+        asyncio.create_task(self.player_handler(player2_info.websocket, match, 2))
         result = await match.run()
         self.send_log(result, player1_info, player2_info, 1)
         # print(f"[Individual] Match finished. Winner: Player {winner}")
@@ -24,11 +24,6 @@ class individual(IGame):
                 p2_info = self.waiting_queue.pop(0)
                 # print("[Individual] Starting a match.")
                 self.game_start = True
-                asyncio.create_task(self.start_match(p1_info, p2_info))
-                for p_info in [p1_info, p2_info]:
-                    try:
-                        await p_info.websocket.close()
-                    except:
-                        pass
-                await self.system.close()
+                await asyncio.create_task(self.start_match(p1_info, p2_info))
+                break
             await asyncio.sleep(0.1)

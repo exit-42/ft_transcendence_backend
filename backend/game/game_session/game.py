@@ -1,8 +1,8 @@
 import asyncio
 import argparse
 import websockets
-from IndividualGame import individual
-from TournamentGame import tournament
+from .IndividualGame import individual
+from .TournamentGame import tournament
 
 
 # ============================================
@@ -12,10 +12,10 @@ async def main_server(mode, port, room_id):
     if mode == "individual":
         # print(f"Starting individual match server on port {port}")
         # 매치메이커 태스크 시작
-        game = individual(room_id)
+        game = await individual.create(room_id)
     elif mode == "tournament":
         # print(f"Starting tournament match server on port {port}")
-        game = tournament(room_id)
+        game = await tournament.create(room_id)
     else:
         print("Unknown mode")
         return
