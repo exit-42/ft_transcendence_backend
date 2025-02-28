@@ -6,12 +6,12 @@ from websockets import WebSocketServerProtocol
 
 
 class tournament(IGame):
-    async def start_match(self, player1_info, player2_info):
+    async def start_match(self, player1_info, player2_info, rank):
         match = PingPongMatch(player1_info, player2_info)
         asyncio.create_task(self.player_handler(player1_info.websocket, match, 1))
         asyncio.create_task(self.player_handler(player2_info.websocket, match, 2))
-        winner = await match.run()
-        return player1_info if winner == 1 else player2_info
+        result = await match.run()
+        await self.send_log(result, player1_info, player2_info, rank)
 
     async def matchmaker(self):
         while True:
@@ -25,16 +25,8 @@ class tournament(IGame):
                 self.game_start = True
                 # print("[Tournament] Starting round 1 matches.")
                 # 라운드1: 두 경기를 동시에 진행 (1:1)
-                task1 = asyncio.create_task(
-                    self.start_match(p1_info, p2_info, "tournament_round1_match1")
-                )
-                task2 = asyncio.create_task(
-                    self.start_match(p3_info, p4_info, "tournament_round1_match2")
-                )
-                result1 = await task1
-                result2 = await task2
-                await self.send_log(result1, p1_info, p2_info, 1)
-                await self.send_log(result2, p3_info, p4_info, 1)
+                result1 = await asyncio.create_task(self.start_match(p1_info, p2_info, 1))
+                result2 = await asyncio.create_task(self.start_match(p3_info, p4_info, 1))
 
                 winner1 = result1.winner
                 winner2 = result2.winner
@@ -51,7 +43,7 @@ class tournament(IGame):
                         self.send(final_msg)
                 except:
                     pass
-
+                await asyncio.sleep(3)
                 watch_list = []
                 for p in [p1_info, p2_info, p3_info, p4_info]:
                     if p is not winner1 and p is not winner2:
@@ -61,8 +53,8 @@ class tournament(IGame):
                 final_match = PingPongMatch(
                     winner1, winner2, watch_list
                 )
-                asyncio.create_task(self.player_handler(winner1.websocket, final_match, 1))
-                asyncio.create_task(self.player_handler(winner2.websocket, final_match, 2))
+                await asyncio.create_task(self.player_handler(winner1.websocket, final_match, 1))
+                await asyncio.create_task(self.player_handler(winner2.websocket, final_match, 2))
                 final_result = await final_match.run()
                 await self.send_log(final_result, winner1, winner2, 1)
                 # print(f"[Tournament] Tournament finished. Final Winner: Player {final_winner}")

@@ -44,9 +44,14 @@ class IGame(metaclass=ABCMeta):
                 except json.JSONDecodeError:
                     continue
         except websockets.exceptions.ConnectionClosed:
-            print("websocket error!")
-            match.game_over = True
-            match.winner = 2 if player_number == 1 else 1
+            if match.game_over == False:
+                match.game_over = True
+                if player_number == 1:
+                    match.winner = 2
+                    match.player2_score = 5
+                else:
+                    match.winner = 1
+                    match.player2_score = 5
 
     async def broadcast_to_waiting(self, message):
         for player in self.waiting_queue:
