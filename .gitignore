@@ -13,4 +13,6 @@ migrations/
 # Makefile 제외
 Makefile
 
+backend/certs/
+
 .DS_Store

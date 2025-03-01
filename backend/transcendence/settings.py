@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-)=(2r4#3z=b8jiut91ca9x3@vgf^_$_sa+w_dsr2+dt!yj7i2=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost","127.0.0.1"]
+ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = "account.User"
 
@@ -228,10 +228,13 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SESSION_COOKIE_AGE = 300
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    os.environ.get("BACK_SERVER_URL"),
-    os.environ.get("FRONT_SERVER_URL"),
-]
+
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+    
+#     os.environ.get("BACK_SERVER_URL"),
+#     os.environ.get("FRONT_SERVER_URL"),
+# ]
 
 CORS_ALLOW_CREDENTIALS = True
 

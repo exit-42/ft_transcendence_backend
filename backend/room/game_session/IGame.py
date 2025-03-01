@@ -35,14 +35,19 @@ class IGame(metaclass=ABCMeta):
         """
         각 플레이어 소켓에서 들어오는 메시지를 읽어 해당 플레이어 큐(match.input_queues)에 저장
         """
+        TIMEOUT_DURATION = 0.1  # 타임아웃 시간 (초) - 필요에 따라 조정
         try:
-            while True:
+            while not match.game_over:
                 try:
-                    message = await websocket.recv()
+                    # message = await websocket.recv()
+                    message = await asyncio.wait_for(websocket.recv(), timeout=TIMEOUT_DURATION)
                     data = json.loads(message)
                     await match.input_queues[player_number].put(data)
                 except json.JSONDecodeError:
                     continue
+                except asyncio.TimeoutError:
+                    # 타임아웃 발생: 메시지 없음, 게임 오버 상태 확인 후 루프 계속
+                    continue  # 혹은 필요하다면 match.game_over 상태를 여기서 다시 체크하고 break 가능
         except websockets.exceptions.ConnectionClosed:
             if match.game_over == False:
                 match.game_over = True

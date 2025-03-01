@@ -131,7 +131,7 @@ class PingPongMatch:
                 # 기본 공식
                 self.ball_pos[1] = abs(math.cos(math.pi/3 * self.ball_pos[2])) + 1
 
-        # 게임 종료 조건 (예: 5점 도달 시)
+        # 게임 종료 조건 (5점 도달 시)
         if self.player1_score >= 5:
             self.winner = 1
             self.game_over = True
