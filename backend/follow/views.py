@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from core.utils import authenticate_token, get_user_last_activity
 
+
 # Swagger
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi

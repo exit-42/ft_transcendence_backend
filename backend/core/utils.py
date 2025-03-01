@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+
 import redis
 from django.utils.timezone import now
 
@@ -130,6 +131,8 @@ def generate_random_nickname():
     """
     while True:
         random_number = f"{random.randint(10000, 99999):05}"
-        nickname = f"#{random_number}"
+
+        nickname = f"{random_number}"
+
         if not User.objects.filter(nickname=nickname).exists():
             return nickname
