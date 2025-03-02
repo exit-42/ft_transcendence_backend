@@ -26,15 +26,15 @@ class tournament(IGame):
                 self.game_start = True
                 # print("[Tournament] Starting round 1 matches.")
                 # 라운드1: 두 경기를 동시에 진행 (1:1)
-                
+
                 # result1 = await asyncio.create_task(self.start_match(p1_info, p2_info, 1))
                 # result2 = await asyncio.create_task(self.start_match(p3_info, p4_info, 1))
 
                 result1, result2 = await asyncio.gather(
                     self.start_match(p1_info, p2_info, 1),
-                    self.start_match(p3_info, p4_info, 1)
+                    self.start_match(p3_info, p4_info, 1),
                 )
-                
+
                 winner1 = result1.winner
                 winner2 = result2.winner
                 # 결승 진출 알림 전송
@@ -57,11 +57,13 @@ class tournament(IGame):
                         watch_list.append(p)
 
                 # print("[Tournament] Starting final match.")
-                final_match = PingPongMatch(
-                    [winner1, winner2], watch_list
+                final_match = PingPongMatch([winner1, winner2], watch_list)
+                await asyncio.create_task(
+                    self.player_handler(winner1.websocket, final_match, 1)
                 )
-                await asyncio.create_task(self.player_handler(winner1.websocket, final_match, 1))
-                await asyncio.create_task(self.player_handler(winner2.websocket, final_match, 2))
+                await asyncio.create_task(
+                    self.player_handler(winner2.websocket, final_match, 2)
+                )
                 final_result = await final_match.run()
                 await self.send_log(final_result, winner1, winner2, 1)
                 # print(f"[Tournament] Tournament finished. Final Winner: Player {final_winner}")

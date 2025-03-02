@@ -7,6 +7,7 @@ import os
 from .PingPongMatch import *
 import sys
 
+
 class IGame(metaclass=ABCMeta):
     def __init__(self, room_id):
         self.waiting_queue = []
@@ -30,7 +31,7 @@ class IGame(metaclass=ABCMeta):
     @abstractmethod
     async def matchmaker():
         pass
-        
+
     async def player_handler(self, websocket, match, player_number):
         """
         각 플레이어 소켓에서 들어오는 메시지를 읽어 해당 플레이어 큐(match.input_queues)에 저장
@@ -40,7 +41,9 @@ class IGame(metaclass=ABCMeta):
             while not match.game_over:
                 try:
                     # message = await websocket.recv()
-                    message = await asyncio.wait_for(websocket.recv(), timeout=TIMEOUT_DURATION)
+                    message = await asyncio.wait_for(
+                        websocket.recv(), timeout=TIMEOUT_DURATION
+                    )
                     data = json.loads(message)
                     await match.input_queues[player_number].put(data)
                 except json.JSONDecodeError:
@@ -99,16 +102,19 @@ class IGame(metaclass=ABCMeta):
             )
             self.waiting_queue.append(player_info)
             # 모든 플레이어에게 대기열 업데이트 알림 (플레이어 별 정보 전송)
-            updated_queue_msg = json.dumps({
-                "type": "join",
-                "data": {
-                    player.username: {
-                        "img_path": player.imagePath,
-                        "winCnt": player.winCnt,
-                        "loseCnt": player.loseCnt
-                    } for player in self.waiting_queue
+            updated_queue_msg = json.dumps(
+                {
+                    "type": "join",
+                    "data": {
+                        player.username: {
+                            "img_path": player.imagePath,
+                            "winCnt": player.winCnt,
+                            "loseCnt": player.loseCnt,
+                        }
+                        for player in self.waiting_queue
+                    },
                 }
-            })
+            )
             await self.broadcast_to_waiting(updated_queue_msg)
         else:
             # success 메시지가 아닌 경우 연결 종료
@@ -130,16 +136,19 @@ class IGame(metaclass=ABCMeta):
                     print("fatal error!!!!")
                     sys.exit(1)
                 self.waiting_queue.remove(player_info)
-                updated_queue_msg = json.dumps({
-                    "type": "join",
-                    "data": {
-                        player.username: {
-                            "img_path": player.imagePath,
-                            "winCnt": player.winCnt,
-                            "loseCnt": player.loseCnt
-                        } for player in self.waiting_queue
+                updated_queue_msg = json.dumps(
+                    {
+                        "type": "join",
+                        "data": {
+                            player.username: {
+                                "img_path": player.imagePath,
+                                "winCnt": player.winCnt,
+                                "loseCnt": player.loseCnt,
+                            }
+                            for player in self.waiting_queue
+                        },
                     }
-                })
+                )
                 await self.broadcast_to_waiting(updated_queue_msg)
 
     async def send_log(self, result, player1_info, player2_info, rank):

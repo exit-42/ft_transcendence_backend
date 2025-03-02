@@ -8,7 +8,8 @@ from log.models import Game, Match
 
 import logging
 
-logger = logging.getLogger('django')
+logger = logging.getLogger("django")
+
 
 def create_game(game_type):
     """

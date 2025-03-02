@@ -7,7 +7,8 @@ import os
 
 import logging
 
-logger = logging.getLogger('django')
+logger = logging.getLogger("django")
+
 
 class RoomManager:
     def __init__(self):
@@ -22,7 +23,7 @@ class RoomManager:
             port = random.randint(int(low), int(high))
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
-                    s.bind(('', port))
+                    s.bind(("", port))
                     s.listen(1)
                     port = s.getsockname()[1]
                     s.close()
@@ -49,7 +50,9 @@ class RoomManager:
         room_id = self.generate_room_id()
         game_id = create_game(mode)
         port = self.get_open_port()
-        process = multiprocessing.Process(target=start_server, args=(room_id, mode, port))
+        process = multiprocessing.Process(
+            target=start_server, args=(room_id, mode, port)
+        )
         process.start()
         pid = process.pid
 
@@ -83,7 +86,7 @@ class RoomManager:
             room["candidate"][user.nickname] = user
             return room
         return None
-    
+
     def accept_room(self, room_id, player_name):
         room = self.rooms.get(room_id)
         logger.info(room["candidate"])

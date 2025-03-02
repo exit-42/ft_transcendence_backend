@@ -8,19 +8,20 @@ from asgiref.sync import sync_to_async
 
 import logging
 
-logger = logging.getLogger('django')
+logger = logging.getLogger("django")
+
 
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        """ WebSocket 연결 시 실행 """
+        """WebSocket 연결 시 실행"""
         await self.accept()
 
     async def disconnect(self, close_code):
-        """ WebSocket 연결 종료 시 실행 """
+        """WebSocket 연결 종료 시 실행"""
         pass  # 연결 해제 시 특별한 작업 없음
 
     async def receive(self, text_data):
-        """ WebSocket으로 JSON 메시지를 받을 때 실행 """
+        """WebSocket으로 JSON 메시지를 받을 때 실행"""
         try:
             data = json.loads(text_data)  # JSON 파싱
             logger.info("consumer : " + text_data)
@@ -29,23 +30,29 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await self.send(json.dumps({"type": "pong", "message": "hello"}))
                 return
             elif message_type == "join" or message_type == "exit":
-                room_id = data.get("room_id")   
+                room_id = data.get("room_id")
                 player = data.get("player")
                 if not room_id or not player:
                     return
 
                 if message_type == "join":
-                    img_path, win_cnt, lose_cnt = room_manager.accept_room(room_id, player)
+                    img_path, win_cnt, lose_cnt = room_manager.accept_room(
+                        room_id, player
+                    )
                     if img_path is None or win_cnt is None or lose_cnt is None:
                         await self.send(json.dumps({"type": "error"}))
                         logger.info("status : error " + text_data)
                     else:
-                        await self.send(json.dumps({
-                            "type": "success",
-                            "img_path": img_path,
-                            "winCnt": win_cnt,
-                            "loseCnt": lose_cnt
-                        }))
+                        await self.send(
+                            json.dumps(
+                                {
+                                    "type": "success",
+                                    "img_path": img_path,
+                                    "winCnt": win_cnt,
+                                    "loseCnt": lose_cnt,
+                                }
+                            )
+                        )
                 else:
                     logger.info("exit start")
                     success = room_manager.exit_room(room_id, player)
@@ -60,7 +67,13 @@ class GameConsumer(AsyncWebsocketConsumer):
                 score_B = data.get("score_B")
                 rank = data.get("rank")
                 logger.info("cunsumer : setting result : " + str(room_id))
-                if player_A_name is None or player_B_name is None or score_A is None or score_B is None or rank is None:
+                if (
+                    player_A_name is None
+                    or player_B_name is None
+                    or score_A is None
+                    or score_B is None
+                    or rank is None
+                ):
                     await self.send(json.dumps({"type": "error"}))
                     logger.info("cunsumer : wrong argunemt")
                     return  # 에러 발생 시 함수 종료

@@ -18,7 +18,6 @@ from drf_yasg import openapi
 from rest_framework.parsers import MultiPartParser, FormParser  # Import parsers
 
 
-
 class roomView(APIView):
     @swagger_auto_schema(
         manual_parameters=[
@@ -34,29 +33,29 @@ class roomView(APIView):
                 type=openapi.TYPE_OBJECT,
                 properties={
                     "games": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            "roomId": openapi.Schema(
-                                type=openapi.TYPE_INTEGER, example=102
-                            ),
-                            "playerCount": openapi.Schema(
-                                type=openapi.TYPE_INTEGER, example=1
-                            ),
-                            "roomManager": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                example="userName",
-                            ),
-                        },
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                "roomId": openapi.Schema(
+                                    type=openapi.TYPE_INTEGER, example=102
+                                ),
+                                "playerCount": openapi.Schema(
+                                    type=openapi.TYPE_INTEGER, example=1
+                                ),
+                                "roomManager": openapi.Schema(
+                                    type=openapi.TYPE_STRING,
+                                    example="userName",
+                                ),
+                            },
+                        ),
                     ),
-                ),
                 },
             ),
         },
     )
     def get(self, request):
-        """ 방 목록 조회 (특정 모드에 해당하는 방 필터링) """
+        """방 목록 조회 (특정 모드에 해당하는 방 필터링)"""
         try:
             user, token_response = authenticate_token(request)
             if token_response:
@@ -68,13 +67,14 @@ class roomView(APIView):
                 {
                     "roomId": room_id,
                     "playerCount": room_data["player_number"],
-                    "roomManager": room_data["room_manager"]
+                    "roomManager": room_data["room_manager"],
                 }
                 for room_id, room_data in room_manager.rooms.items()
-                if mode is None or room_data.get("mode") == mode
-                and room_data["player_number"] > 0 
+                if mode is None
+                or room_data.get("mode") == mode
+                and room_data["player_number"] > 0
             ]
-            
+
             return JsonResponse({"data": rooms}, status=200)
 
         except Exception as e:
@@ -94,24 +94,20 @@ class roomView(APIView):
             201: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    "room_id": openapi.Schema(
-                        type=openapi.TYPE_STRING, example="1"
-                    ),
-                    "port": openapi.Schema(
-                        type=openapi.TYPE_STRING, example="10001"
-                    ),
+                    "room_id": openapi.Schema(type=openapi.TYPE_STRING, example="1"),
+                    "port": openapi.Schema(type=openapi.TYPE_STRING, example="10001"),
                 },
             ),
         },
     )
     def post(self, request):
-        """ 새로운 방 생성 (방장 이름과 게임 모드 필요) """
+        """새로운 방 생성 (방장 이름과 게임 모드 필요)"""
 
         try:
             user, token_response = authenticate_token(request)
             if token_response:
                 return token_response
-            
+
             data = json.loads(request.body)
             player_name = user.nickname
             mode = data.get("mode")
@@ -123,15 +119,10 @@ class roomView(APIView):
             if room_id:
                 room_manager.join_room(room_id, user)
 
-            return JsonResponse({
-                "room_id": room_id,
-                "port": port
-            }, status=201)
-
+            return JsonResponse({"room_id": room_id, "port": port}, status=201)
 
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
-
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
@@ -147,23 +138,19 @@ class roomView(APIView):
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    "roomId": openapi.Schema(
-                        type=openapi.TYPE_STRING, example="1"
-                    ),
-                    "port": openapi.Schema(
-                        type=openapi.TYPE_STRING, example="10001"
-                    ),
+                    "roomId": openapi.Schema(type=openapi.TYPE_STRING, example="1"),
+                    "port": openapi.Schema(type=openapi.TYPE_STRING, example="10001"),
                 },
             ),
         },
     )
     def patch(self, request):
-        """ 기존 방 입장 (room_id 필요) """
+        """기존 방 입장 (room_id 필요)"""
         try:
             user, token_response = authenticate_token(request)
             if token_response:
                 return token_response
-            
+
             data = json.loads(request.body)
             room_id = data.get("room_id")
 
@@ -174,12 +161,9 @@ class roomView(APIView):
             if not room_data:
                 return JsonResponse({"message": "cannot join room"}, status=404)
 
-            return JsonResponse({
-                "roomId": room_id,
-                "port": room_data["socket_port_number"]
-            }, status=200)
-
+            return JsonResponse(
+                {"roomId": room_id, "port": room_data["socket_port_number"]}, status=200
+            )
 
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=500)
-    

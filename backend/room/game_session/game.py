@@ -5,6 +5,7 @@ import websockets
 from .IndividualGame import individual
 from .TournamentGame import tournament
 
+
 # ============================================
 # 메인 서버: 모드에 따라 소켓 서버 및 매치메이커 실행 (wss 지원)
 # ============================================
@@ -27,5 +28,14 @@ async def main_server(room_id, mode, port, certfile, keyfile):
     server = await websockets.serve(game.register, "0.0.0.0", port, ssl=ssl_context)
     await server.wait_closed()
 
-def start_server(room_id, mode, port, certfile="/app/backend/certs/certificate.crt", keyfile="/app/backend/certs/private.key"):
-    asyncio.get_event_loop().run_until_complete(main_server(room_id, mode, port, certfile, keyfile))
+
+def start_server(
+    room_id,
+    mode,
+    port,
+    certfile="/app/backend/certs/certificate.crt",
+    keyfile="/app/backend/certs/private.key",
+):
+    asyncio.get_event_loop().run_until_complete(
+        main_server(room_id, mode, port, certfile, keyfile)
+    )
