@@ -250,8 +250,8 @@ class PingPongMatch:
     async def run(self):
         msg = {
             "type": "start",
-            "player1" : self.player1_info.username,
-            "player2" : self.player2_info.username,
+            "player1": self.player1_info.username,
+            "player2": self.player2_info.username,
         }
         msg_json = json.dumps(msg)
         try:

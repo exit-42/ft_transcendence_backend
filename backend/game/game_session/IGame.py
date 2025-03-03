@@ -9,6 +9,7 @@ import sys
 
 lock = asyncio.Lock()
 
+
 class IGame(metaclass=ABCMeta):
     def __init__(self, room_id):
         self.waiting_queue = []
@@ -87,7 +88,7 @@ class IGame(metaclass=ABCMeta):
             await self.system.send(candidate_msg)
             # django와 연결된 소켓으로부터 success 메시지 수신 (여기서 imagePath, winCnt, loseCnt 포함)
             success_msg = await self.system.recv()
-        
+
         success_data = json.loads(success_msg)
         if success_data.get("type") == "success":
             imagePath = success_data.get("img_path")
