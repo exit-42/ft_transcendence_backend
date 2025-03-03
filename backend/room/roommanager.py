@@ -2,12 +2,14 @@ import multiprocessing
 import socket
 import random
 from log.utils import *
+
 # from .game_session.game import *
 import os
 
 import logging
 
-logger = logging.getLogger('django')
+logger = logging.getLogger("django")
+
 
 class RoomManager:
     def __init__(self):
@@ -30,7 +32,7 @@ class RoomManager:
                 continue
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
-                    s.bind(('', port))
+                    s.bind(("", port))
                     s.listen(1)
                     self.used_ports.add(port)
                     return port
@@ -122,13 +124,13 @@ class RoomManager:
         room = self.rooms.get(int(room_id))
         if room:
             if room["start"] is True:
-                return None 
+                return None
             if user.nickname not in room["candidate"]:
                 room["candidate"][user.nickname] = user
             return room
         logger.debug("room manager : wrong room_id (" + str(room_id) + ")")
         return None
-    
+
     def accept_room(self, room_id, player_name):
         """
         @brief 해당 방에 최종적으로 입장 허용하는 함수
@@ -160,7 +162,9 @@ class RoomManager:
                     room["start"] = True
             room["player_number"] += 1
             return user.imagePath, user.winCnt, user.loseCnt
-        logger.debug("room manager : wrong user " + player_name + " in " + str(room_id) + "")
+        logger.debug(
+            "room manager : wrong user " + player_name + " in " + str(room_id) + ""
+        )
         return None
 
     def exit_room(self, room_id, player_name):
@@ -207,7 +211,7 @@ class RoomManager:
 
         @detail 해당 room_id를 가진 방에 대한 로그 추가 및 모든 match가 끝난다면 게임 종료로 상태 변환
                 만약 tournament인 경우 rank가 2인 경우(결승전이 종료한 경우)만 게임 종료로 변환
-                그 외 match 저장 후 게임 종료로 변환 
+                그 외 match 저장 후 게임 종료로 변환
         """
         room = self.rooms.get(room_id)
         result["player_A_id"] = room["players"][result["player_A_name"]].id

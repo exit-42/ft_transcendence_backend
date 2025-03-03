@@ -8,7 +8,8 @@ from log.models import Game, Match
 
 import logging
 
-logger = logging.getLogger('django')
+logger = logging.getLogger("django")
+
 
 def create_game(game_type):
     """
@@ -71,7 +72,7 @@ def create_match_log(result):
 
     @param player_A_id, player_B_id, score_A, score_B, game_id, rank가 담긴 dictionary
 
-    @return 
+    @return
         - 성공 : True
         - 에러 발생 : False
 
