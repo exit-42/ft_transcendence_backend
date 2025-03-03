@@ -5,5 +5,3 @@ requests
 djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
-channels[daphne]
-channels_redis
