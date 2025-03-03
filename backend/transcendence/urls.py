@@ -38,6 +38,7 @@ urlpatterns = [
     path("authentication/", include("authentication.urls")),
     path("follow/", include("follow.urls")),
     path("log/", include("log.urls")),
+    path("room/", include("room.urls")),
     re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",
         schema_view.without_ui(cache_timeout=0),

@@ -10,5 +10,8 @@ migrations/
 # 환경 파일 제외
 .env
 
+certs/
+.DS_Store
+
 # Makefile 제외
 Makefile

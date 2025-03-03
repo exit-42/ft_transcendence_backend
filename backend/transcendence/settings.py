@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-)=(2r4#3z=b8jiut91ca9x3@vgf^_$_sa+w_dsr2+dt!yj7i2=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = "account.User"
 
@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "authentication",
     "follow",
     "log",
+    "room",
 ]
 
 REST_FRAMEWORK = {
