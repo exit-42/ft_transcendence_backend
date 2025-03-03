@@ -9,3 +9,4 @@ drf-yasg
 django-redis
 channels[daphne]
 channels_redis
+websockets
