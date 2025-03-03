@@ -9,10 +9,6 @@ migrations/
 
 # 환경 파일 제외
 .env
-*.log
+
 # Makefile 제외
 Makefile
-
-backend/certs/
-
-.DS_Store

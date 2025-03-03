@@ -26,55 +26,13 @@ SECRET_KEY = "django-insecure-)=(2r4#3z=b8jiut91ca9x3@vgf^_$_sa+w_dsr2+dt!yj7i2=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = "account.User"
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {module}: {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '[{levelname}] {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': 'django_warning.log',
-            'formatter': 'verbose',
-        },
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'myapp': {  # 특정 앱에 대한 로거 설정
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-    },
-}
-
 
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -89,7 +47,6 @@ INSTALLED_APPS = [
     "authentication",
     "follow",
     "log",
-    "room",
 ]
 
 REST_FRAMEWORK = {
@@ -140,15 +97,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "transcendence.wsgi.application"
 
-ASGI_APPLICATION = "transcendence.asgi.application"
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis", 6379)],
-        },
-    },
-}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -228,13 +176,10 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SESSION_COOKIE_AGE = 300
 
 # CORS
-
-CORS_ORIGIN_ALLOW_ALL = True
-# CORS_ALLOWED_ORIGINS = [
-    
-#     os.environ.get("BACK_SERVER_URL"),
-#     os.environ.get("FRONT_SERVER_URL"),
-# ]
+CORS_ALLOWED_ORIGINS = [
+    os.environ.get("BACK_SERVER_URL"),
+    os.environ.get("FRONT_SERVER_URL"),
+]
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -269,6 +214,9 @@ CSRF_TRUSTED_ORIGINS = [
 MEDIA_ROOT = "/app/media/"
 
 MEDIA_URL = "/media/"
+
+
+# REDIS
 
 CACHES = {
     "default": {
