@@ -112,7 +112,7 @@ class roomView(APIView):
                 for room_id, room_data in room_manager.rooms.items()
                 if mode is None
                 or room_data.get("mode") == mode
-                and room_data["start"] == False
+                and room_data["player_number"] > 0
             ]
 
             return JsonResponse({"data": rooms}, status=200)
