@@ -2,7 +2,7 @@ import multiprocessing
 import socket
 import random
 from log.utils import *
-from .game_session.game import *
+# from .game_session.game import *
 import os
 
 import logging
@@ -15,21 +15,32 @@ class RoomManager:
         self.next_room_id = 1  # 새로운 방 ID를 위한 카운터
         self.available_room_ids = []  # 삭제된 방 ID 재사용을 위한 리스트
 
+        # 사용 가능한 포트 리스트
+        self.used_ports = set()
+        low = int(os.environ.get("PORT_START"))
+        high = int(os.environ.get("PORT_END"))
+        self.candidate_ports = list(range(low, high + 1))
+        random.shuffle(self.candidate_ports)
+
     def get_open_port(self):
-        low = os.environ.get("PORT_START")
-        high = os.environ.get("PORT_END")
-        while True:
-            port = random.randint(int(low), int(high))  
+        temporary_not_avail = []
+        while self.candidate_ports:
+            port = self.candidate_ports.pop()
+            if port in self.used_ports:
+                continue
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
                     s.bind(('', port))
                     s.listen(1)
-                    port = s.getsockname()[1]
-                    s.close()
+                    self.used_ports.add(port)
                     return port
-                except OSError:
-                    logger.debug("room manager : " + str(OSError))
+                except OSError as e:
+                    temporary_not_avail.append(port)
                     continue
+        # 후보 리스트가 소진되면 예외를 발생시킵니다.
+        self.candidate_ports.extend(temporary_not_avail)
+        logger.debug("room manager : no port available")
+        return None
 
     def generate_room_id(self):
         if self.available_room_ids:
@@ -46,13 +57,17 @@ class RoomManager:
 
         @return
             - 성공 : room_id, port
+            - 실패 : None
         """
         room_id = self.generate_room_id()
         game_id = create_game(mode)
         port = self.get_open_port()
-        process = multiprocessing.Process(target=start_server, args=(room_id, mode, port))
-        process.start()
-        pid = process.pid
+        if port is None:
+            return None
+        # process = multiprocessing.Process(target=start_server, args=(room_id, mode, port))
+        # process.start()
+        # pid = process.pid
+        pid = None
 
         self.rooms[room_id] = {
             "player_number": 0,
@@ -64,6 +79,7 @@ class RoomManager:
             "candidate": {},
             "pid": pid,
             "mode": mode,
+            "start": False,
         }
         return room_id, port
 
@@ -84,6 +100,8 @@ class RoomManager:
                 process.terminate()
             self.available_room_ids.append(room_id)  # 삭제된 ID 재사용 가능하도록 추가
             self.available_room_ids.sort()  # 작은 ID부터 우선 재사용
+            if room["socket_port_number"] is not None:
+                self.candidate_ports.append(room["socket_port_number"])
             return True
         logger.debug("room manager : wrong room_id (" + str(room_id) + ")")
         return False
@@ -102,8 +120,11 @@ class RoomManager:
                 반드시 accept_room이 호출되기 전 join_room이 호출 되어야 함
         """
         room = self.rooms.get(int(room_id))
-        if room and user.nickname not in room["candidate"]:
-            room["candidate"][user.nickname] = user
+        if room:
+            if room["start"] is True:
+                return None 
+            if user.nickname not in room["candidate"]:
+                room["candidate"][user.nickname] = user
             return room
         logger.debug("room manager : wrong room_id (" + str(room_id) + ")")
         return None
@@ -127,8 +148,16 @@ class RoomManager:
             user = room["candidate"][player_name]
             room["players"][player_name] = user
             del room["candidate"][player_name]
+            # 방장 할당
             if (room["player_number"]) == 0:
                 room["room_manager"] = player_name
+            # 방 정원 확인
+            if room["mode"] == "tournament":
+                if len(room["players"]) == 4:
+                    room["start"] = True
+            elif room["mode"] == "individual":
+                if len(room["players"]) == 2:
+                    room["start"] = True
             room["player_number"] += 1
             return user.imagePath, user.winCnt, user.loseCnt
         logger.debug("room manager : wrong user " + player_name + " in " + str(room_id) + "")
