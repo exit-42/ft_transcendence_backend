@@ -1,563 +1,76 @@
-import os, requests, random, json
+import os, json
 from django.conf import settings
-from django.http import JsonResponse, HttpResponseRedirect
-from django.shortcuts import redirect
+from django.http import JsonResponse
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from rest_framework.decorators import api_view
-from django.contrib.auth.hashers import make_password, check_password
-from django.core.mail import send_mail
-from rest_framework_simplejwt.exceptions import TokenError
-from django.views.generic import View
+from rest_framework.decorators import api_view, parser_classes
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.csrf import csrf_protect
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from core.utils import authenticate_token
 
 User = get_user_model()
 
-from account.models import OAuth, LocalAuth, Follow
+# Swagger
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+# DRF Parsers
+from rest_framework.parsers import MultiPartParser, FormParser  # Import parsers
 
 
-def get_oauth_token(request):
-    """
-    @brief 클라이언트를 42 API의 OAuth 인증 페이지로 리디렉션하는 함수
-
-    @param request Django의 HTTP 요청 객체
-
-    @return 42 API의 OAuth 인증 페이지로 리디렉션
-
-    @details
-    환경 변수에서 CLIENT_ID와 REDIRECT_URI를 읽어와 OAuth 인증 URL을 생성합니다.
-    생성된 URL로 리디렉션하여 42 인증을 시작합니다.
-    """
-    client_id = os.environ.get("CLIENT_ID")
-    redirect_uri = os.environ.get("REDIRECT_URI")
-    authorize_uri = f"https://api.intra.42.fr/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=public"
-    return redirect(authorize_uri)
-
-
-def callback(request):
-    """
-    @brief 42 OAuth 인증 콜백을 처리하는 함수
-
-    @param request Django의 HTTP 요청 객체
-
-    @return
-        - 성공: JWT를 생성하여 사용자의 쿠키에 저장하고 기본 페이지로 리디렉션
-        - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
-
-    @details
-    42 API 서버로부터 받은 인증 코드를 사용하여 access_token 및 refresh_token을 요청한다.
-    access_token을 이용하여 42 API 서버에서 사용자 정보를 가져온다.
-    가져온 사용자 정보(인트라 ID, 이메일, 프로필 이미지 url)를 기반으로
-    OAuth 테이블에서 해당 사용자를 조회하여
-        - 동일한 유저가 없으면 새 사용자 정보를 데이터베이스에 저장하고 유저 객체를 통해
-        - 동일한 유저가 있으면 해당 유저 객체를 통해
-    JWT를 생성하여 사용자의 클라이언트 쿠키에 access_token과 refresh_token을 저장한다.
-    이후 사용자를 기본 페이지로 리디렉션한다.
-    """
-    code = request.GET.get("code")
-    if not code:
-        return JsonResponse(
-            {
-                "message": "No authorization code in request",
+@swagger_auto_schema(
+    method="post",
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "username": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="User's username"
+                ),
+                "imagePath": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="URL of the user's profile image",
+                ),
+                "nickname": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="User's nickname"
+                ),
+                "winCnt": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Number of wins"
+                ),
+                "loseCnt": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Number of losses"
+                ),
             },
-            status=400,
-        )
-    client_id = os.environ.get("CLIENT_ID")
-    client_secret = os.environ.get("CLIENT_SECRET")
-    redirect_uri = os.environ.get("REDIRECT_URI")
-    token_url = "https://api.intra.42.fr/oauth/token"
-    token_response = requests.post(
-        token_url,
-        data={
-            "grant_type": "authorization_code",
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": code,
-            "redirect_uri": redirect_uri,
-        },
-    )
-    if token_response.status_code == 200:
-        access_token = token_response.json().get("access_token")
-        user_info = requests.get(
-            "https://api.intra.42.fr/v2/me",
-            headers={"Authorization": f"Bearer {access_token}"},
-        ).json()
-        intra_id = user_info.get("login")
-        user_email = user_info.get("email")
-        user_image_path = user_info.get("image", {}).get("link")
-        user, created = get_or_create_user_oauth(intra_id, user_email, user_image_path)
-        refresh = RefreshToken.for_user(user)
-        access = refresh.access_token
-        response = HttpResponseRedirect(os.environ.get("FRONT_SERVER_URL"))
-        response.set_cookie(
-            key="access_token",
-            value=str(access),
-            httponly=True,
-            secure=True,
-            samesite="Lax",
-            max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-            path="/",
-        )
-        response.set_cookie(
-            key="refresh_token",
-            value=str(refresh),
-            httponly=True,
-            secure=True,
-            samesite="Lax",
-            max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
-            path="/",
-        )
-        return response
-    else:
-        return JsonResponse(
-            {
-                "message": "Token Request Failed",
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
             },
-            status=token_response.status_code,
-        )
-
-
-def generate_random_nickname():
-    """
-    @brief 랜덤한 유저 닉네임을 생성하는 함수
-
-    @param 없음
-
-    @return 다른 유저와 중복되지 않는 랜덤 생성된 유저의 닉네임
-
-    @details
-    10000 부터 99999 까지의 임의의 수를 무작위로 골라서 '#' 문자열 뒤에 붙인다.
-    User 테이블을 조회하여 랜덤 생성된 닉네임의 중복여부를 확인한다.
-        - 중복되었다면 새로운 랜덤 닉네임을 다시 생성한다.
-        - 중복되지 않았다면 해당 닉네임을 리턴한다.
-    최종적으로 중복되지 않은 닉네임을 리턴한다.
-    """
-    while True:
-        random_number = f"{random.randint(10000, 99999):05}"
-        nickname = f"#{random_number}"
-        if not User.objects.filter(nickname=nickname).exists():
-            return nickname
-
-
-def get_or_create_user_oauth(intra_id, user_email, user_image_path):
-    """
-    @brief OAuth 인증을 통해 유저를 조회하거나 생성하는 함수
-
-    @param
-        - intra_id : 유저의 42 인트라 아이디
-        - user_email : 유저의 이메일
-        - user_image_path : 유저의 사진 url
-
-    @return 유저(user)와 생성 여부(bool created)
-
-    @details
-    OAuth 테이블에서 유저의 인트라아이디와 동일한 인트라아이디를 가진 객체가 있는지 탐색한다.
-        - 동일한 인트라 아이디를 가진 유저가 있다면 해당 유저와 생성 여부(false)를 리턴한다.
-        - 동일한 인트라 아이디를 가진 유저가 없다면 새롭게 유저 객체를 생성하고 연결된 OAuth 객체를 생성하여 해당 유저와 생성 여부(true)를 리턴한다.
-    """
-    try:
-        oauth_account = OAuth.objects.filter(intraId=intra_id).first()
-        if oauth_account:
-            user = oauth_account.user
-            created = False
-        else:
-            random_nickname = generate_random_nickname()
-            user, created = User.objects.get_or_create(
-                email=user_email,
-                defaults={
-                    "imagePath": user_image_path,
-                    "nickname": random_nickname,
-                },
-            )
-            if created:
-                OAuth.objects.create(user=user, intraId=intra_id)
-        return user, created
-    except Exception as e:
-        return None, False
-
-
-@api_view(["POST"])
-def signin_local_auth(request):
-    """
-    @brief LocalAuth를 통해 로그인 하는 함수
-
-    @param
-        - local_id : LocalAuth 로그인에 필요한 아이디
-        - local_password : LocalAuth 로그인에 필요한 비밀번호
-
-    @return
-        - 아이디, 비밀번호 일치 : "Email has been sent.", user_email (200)
-        - 아이디 발견 실패 : "id not exist." (404)
-        - 비밀번호 불일치 : "wrong password." (401)
-        - 기타 예외 발생 : 에러 메시지 (500)
-
-    @details
-        - 입력받은 아이디와 동일한 아이디를 가진 객체가 LocalAuth에 존재하는지 확인합니다.
-        - 특정 객체가 LocalAuth에 존재한다면 입력받은 비밀번호가 해당 객체의 비밀번호와 일치하는지 확인합니다.
-        - 아이디와 비밀번호가 모두 일치한다면 해당 유저의 등록된 이메일로 확인 이메일(2FA)을 전송합니다.
-    """
-    try:
-        data = json.loads(request.body)
-        local_id = data.get("id")
-        local_password = data.get("password")
-        if not local_id or not local_password:
-            return JsonResponse(
-                {"message": "Please provide id and password. Both are required."},
-                status=400,
-            )
-        try:
-            local_auth = LocalAuth.objects.get(localId=local_id)
-        except LocalAuth.DoesNotExist:
-            return JsonResponse({"message": "id not exist."}, status=404)
-        if not check_password(local_password, local_auth.localPassword):
-            request.session.pop("user_id", None)
-            return JsonResponse({"message": "wrong password."}, status=401)
-        user = local_auth.user
-        random_code = str(random.randint(10000, 99999))
-        request.session["user_id"] = user.id
-        request.session["authenticate_code"] = random_code
-        try:
-            send_mail(
-                subject="Your 2FA Code",
-                message=f"Your 2FA code is: {random_code}",
-                from_email=os.environ.get("EMAIL_HOST_USER"),
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            return JsonResponse({"message": "Failed to send email"}, status=500)
-        return JsonResponse(
-            {"message": "Email has been sent.", "email": user.email}, status=200
-        )
-    except Exception as e:
-        return JsonResponse({"message": f"{str(e)}"}, status=500)
-
-
-@api_view(["POST"])
-def get_local_auth_token(request):
-    """
-    @brief LocalAuth 로그인 할 때 2FA 인증을 처리하는 함수
-
-    @param
-        - code : 2FA 인증코드
-
-    @return
-        - 인증성공(토큰발급) : "success" (200)
-        - 세션 관련 에러 발생 : 에러 메시지 (4xx)
-        - 기타 예외 발생 : 에러 메시지 (500)
-    """
-    try:
-        data = json.loads(request.body)
-        authenticate_code = data.get("code")
-        if not authenticate_code:
-            return JsonResponse({"message": "Code is required."}, status=400)
-
-        stored_user_id = request.session.get("user_id")
-        stored_code = request.session.get("authenticate_code")
-        del request.session["user_id"]
-        del request.session["authenticate_code"]
-
-        if not stored_user_id or not stored_code:
-            return JsonResponse(
-                {"message": "Session data is missing or expired."}, status=400
-            )
-
-        if stored_code == authenticate_code:
-            try:
-                user = User.objects.get(id=stored_user_id)
-            except User.DoesNotExist:
-                return JsonResponse({"message": "User not found"}, status=401)
-
-            refresh = RefreshToken.for_user(user)
-            access = refresh.access_token
-            response = JsonResponse({"message": "success"}, status=200)
-
-            response.set_cookie(
-                key="access_token",
-                value=str(access),
-                httponly=True,
-                secure=True,
-                samesite="Lax",
-                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-                path="/",
-            )
-            response.set_cookie(
-                key="refresh_token",
-                value=str(refresh),
-                httponly=True,
-                secure=True,
-                samesite="Lax",
-                max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
-                path="/",
-            )
-            return response
-        else:
-            return JsonResponse({"message": "Invalid code or email."}, status=400)
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"message": "Please send the data in JSON format."}, status=400
-        )
-    except Exception as e:
-        return JsonResponse({"message": f"{str(e)}"}, status=500)
-
-
-@api_view(["GET"])
-def check_local_auth_id(request):
-    """
-    @brief 특정 ID를 가진 LocalAuth 객체가 존재하는지 확인하는 함수
-
-    @param request Django의 HTTP 요청 객체
-
-    @return ID 중복여부를 상태코드와 JSON 형태로 반환
-
-    @details
-    URL 쿼리 스트링에서 local_id를 추출한다.
-    LocalAuth 테이블에 local_id와 동일한 localID를 가진 객체가 존재하는지 확인한다.
-    """
-    try:
-        local_id = request.GET.get("id")
-        if not local_id:
-            return JsonResponse({"message": "ID not provided."}, status=400)
-
-        if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"message": "ID already in use"}, status=409)
-        else:
-            return JsonResponse(
-                {"message": "ID is available", "id": local_id}, status=200
-            )
-    except Exception as e:
-        return JsonResponse({"message": f"Server error: {str(e)}"}, status=500)
-
-
-@api_view(["POST"])
-def send_authentication_email(request):
-    """
-    @brief 인증 이메일 전송 함수
-
-    @param request Django의 HTTP 요청 객체
-
-    @return 이메일 전송 성공여부를 상태코드와 JSON 형태로 반환
-
-    @details
-    Request의 바디에서 user_email을 추출.
-    랜덤 인증 코드를 생성.
-    세션에 다음 정보를 저장:
-        - authenticate_code: 생성된 인증 코드
-        - authenticate_email: 사용자 이메일
-        - is_authenticated: False
-    user_email으로 랜덤 인증 코드를 전송.
-    이메일 전송 성공여부를 반환.
-    """
-    try:
-        data = json.loads(request.body)
-        user_email = data.get("email")
-
-        if not user_email:
-            return JsonResponse({"message": "Email is required."}, status=400)
-
-        random_code = str(random.randint(10000, 99999))
-        request.session["authenticate_code"] = random_code
-        request.session["authenticate_email"] = user_email
-        request.session["is_authenticated"] = False
-
-        send_mail(
-            subject="Your Authentication Code",
-            message=f"Your authentication code is: {random_code}",
-            from_email=os.environ.get("EMAIL_HOST_USER"),
-            recipient_list=[user_email],
-            fail_silently=False,
-        )
-        return JsonResponse({"message": "Email has been sent."}, status=200)
-
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"message": "Please send the data in JSON format."}, status=400
-        )
-    except Exception as e:
-        return JsonResponse({"message": f"{str(e)}"}, status=500)
-
-
-@api_view(["POST"])
-def authenticate_code(request):
-    """
-    @brief 인증 코드를 검증하고 세션의 인증 상태를 업데이트하는 함수
-
-    @param request Django의 HTTP 요청 객체
-
-    @return
-        - 성공: 세션의 인증 상태를 True로 설정하고 성공메시지 반환
-        - 실패: 상태 코드와 에러메시지 반환
-
-    @detail
-    Request의 바디에서 user_email과 인증 코드(code)를 추출.
-    세션에 저장된 이메일과 입력받은 user_email이 동일한지 검사.
-    세션에 저장된 인증코드와 입력받은 인증코드가 동일한지 검사.
-        - 동일하지 않다면 에러메시지를 JSON 형태로 반환.
-        - 동일하다면 세션의 is_authenticated 값을 True로 바꾸고 성공메시지를 JSON 형태로 반환.
-    """
-    try:
-        data = json.loads(request.body)
-        authenticate_email = data.get("email")
-        authenticate_code = data.get("code")
-
-        if not authenticate_email:
-            return JsonResponse({"message": "Email is required."}, status=400)
-
-        if not authenticate_code:
-            return JsonResponse({"message": "Code is required."}, status=400)
-
-        stored_code = request.session.get("authenticate_code")
-        stored_email = request.session.get("authenticate_email")
-
-        if not stored_code or not stored_email:
-            return JsonResponse(
-                {"message": "Session data is missing or expired."}, status=400
-            )
-
-        if stored_code == authenticate_code and stored_email == authenticate_email:
-            request.session["is_authenticated"] = True
-            return JsonResponse({"message": "Authentication successful."}, status=200)
-        else:
-            return JsonResponse({"message": "Invalid code or email."}, status=400)
-
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"message": "Please send the data in JSON format."}, status=400
-        )
-    except Exception as e:
-        return JsonResponse({"message": f"{str(e)}"}, status=500)
-
-
-@api_view(["POST"])
-def local_auth_sign_up(request):
-    """
-    @brief LocalAuth 회원가입 함수
-
-    @param request Django의 HTTP 요청 객체
-
-    @return
-        - 성공: 상태 코드를 JSON 형태로 반환
-        - 실패: 상태 코드와 에러 메시지를 JSON 형태로 반환
-
-    @details
-    Request의 바디에서 id와 password를 추출한다.
-    LocalAuth 테이블에서 입력받은 id와 동일한 localId를 가진 객체가 존재하는지 확인한다.
-        - 일치하는 객체가 있는 경우 에러메시지를 JsonResponse 형태로 리턴한다.
-        - 일치하는 객체가 없는 경우 이메일 인증여부를 확인한다.
-            - 이메일 인증을 확인한 후 입력받은 값으로 유저를 생성하고 상태코드를 JSON 형태로 리턴한다.
-    """
-    try:
-        data = json.loads(request.body)
-        local_id = data.get("id")
-        local_password = data.get("password")
-        user_email = data.get("email")
-
-        if not local_id or not local_password or not user_email:
-            return JsonResponse({"message": "All fields are required."}, status=400)
-
-        if LocalAuth.objects.filter(localId=local_id).exists():
-            return JsonResponse({"message": "ID already in use"}, status=409)
-
-        stored_email = request.session.get("authenticate_email")
-        is_authenticated = request.session.get("is_authenticated")
-
-        if stored_email != user_email or not is_authenticated:
-            return JsonResponse(
-                {"message": "Email verification is required."}, status=403
-            )
-        random_nickname = generate_random_nickname()
-        user = User.objects.create(
-            email=user_email,
-            imagePath=os.environ.get("FRONT_SERVER_URL") + "/static/image/default.jpeg",
-            nickname=random_nickname,
-        )
-        hashed_password = make_password(local_password)
-        LocalAuth.objects.create(
-            user=user, localId=local_id, localPassword=hashed_password
-        )
-        del request.session["authenticate_email"]
-        del request.session["authenticate_code"]
-        del request.session["is_authenticated"]
-        return JsonResponse({"message": "Sign-up success!"}, status=201)
-
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"message": "Please send the data in JSON format."}, status=400
-        )
-    except Exception as e:
-        return JsonResponse({"message": f"{str(e)}"}, status=500)
-
-
-def authenticate_token(request):
-    """
-    @brief JWT 검증 함수
-
-    @param request 그대로 넘겨줌.
-
-    @return
-        - 성공 : (유저 객체, None) 형식으로 반환
-        - 실패 (access_token 만료) : (None, 토큰 갱신 메시지) 형식으로 반환
-        - 실패 (refresh_token 만료 or 유효하지 않은 JWT) : (None, 실패 메시지) 형식으로 반환
-
-    @details
-    request의 쿠키에서 access_token과 refresh_token을 가져온다.
-    access_token을 디코딩하여 user_id를 추출한다.
-    access_token의 payload에서 user_id(pk)를 가져온다.
-        - access_token이 없거나 만료된 경우, refresh_token을 사용해 새로운 access_token을 생성하고 (None, 토큰 갱신 메시지) 형식으로 반환한다.
-        - refresh_token이 만료되었거나 access_token이 유효하지 않으면 (None, 실패 메시지) 형식으로 반환한다.
-    추출된 user_id를 기반으로 User 테이블에서 사용자 객체를 찾아서 (User, None) 형식으로 반환한다.
-    """
-    access_token = request.COOKIES.get("access_token")
-    refresh_token = request.COOKIES.get("refresh_token")
-
-    if not access_token and not refresh_token:
-        return None, JsonResponse({"message": "JWTs are missing."}, status=401)
-
-    user_id = None
-
-    if access_token:
-        try:
-            access_payload = AccessToken(access_token)
-            user_id = access_payload.get("user_id")
-        except TokenError:
-            pass
-
-    if not user_id:
-        try:
-            refresh = RefreshToken(refresh_token)
-            new_access = refresh.access_token
-
-            response = JsonResponse({"message": "Token refreshed"}, status=452)
-            response.set_cookie(
-                key="access_token",
-                value=str(new_access),
-                httponly=True,
-                secure=True,
-                samesite="Lax",
-                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-                path="/",
-            )
-            return None, response
-        except TokenError:
-            return None, JsonResponse(
-                {"message": "Invalid or expired refresh token"}, status=401
-            )
-
-    if not user_id:
-        return None, JsonResponse({"message": "Invalid token payload"}, status=401)
-
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return None, JsonResponse({"message": "User not found"}, status=401)
-
-    return user, None
-
-
+        ),
+        452: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Retrieves user data using a JWT.",
+    operation_summary="Get user data",
+)
 @api_view(["POST"])
 def login(request):
     """
@@ -589,6 +102,21 @@ def login(request):
         return JsonResponse({"message": str(e)}, status=500)
 
 
+@swagger_auto_schema(
+    method="post",
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="logged out successfully."
+                )
+            },
+        ),
+    },
+    operation_description="Deletes the JWT from cookies.",
+    operation_summary="Logout user",
+)
 @api_view(["POST"])
 def logout(request):
     """
@@ -624,165 +152,206 @@ def get_csrf_token(request):
     return JsonResponse({"csrfToken": get_token(request)})
 
 
-class followView(View):
-    def get(self, request):
-        """
-        @brief nickname을 통해 유저를 검색하는 함수
-
-        @param request Django의 HTTP 요청 객체
-
-        @return
-            - 유저 발견 O : 유저 데이터 반환, 유저 발견 성공 메시지(200)
-            - 유저 발견 X : 유저 발견 실패 메시지(404)
-            - 에러 발생 : 에러메시지(400 or 500)
-
-        @details
-        특정 문자열을 포함한 닉네임을 가진 유저들을 탐색한다.
-        """
-        try:
-            user, token_response = authenticate_token(request)
-            if token_response:
-                return token_response
-
-            word = request.GET.get("word")
-            if not word:
-                return JsonResponse({"message": "Word not provided"}, status=400)
-
-            users = User.objects.filter(nickname__icontains=word)
-
-            if not users.exists():
-                return JsonResponse({"message": "User not found"}, status=404)
-
-            user_list = [
-                {
-                    "nickname": searched_user.nickname,
-                    "imagePath": searched_user.imagePath,
-                }
-                for searched_user in users
-            ]
-
-            return JsonResponse(
-                {"message": "User found", "data": user_list}, status=200
-            )
-
-        except Exception as e:
-            return JsonResponse({"message": str(e)}, status=500)
-
-    @csrf_exempt
-    def post(self, request):
-        """
-        @brief 특정 유저를 팔로우하는 함수
-
-        @param request Django의 HTTP 요청 객체
-
-        @return
-            - 팔로우 성공 : "Follow complete" (201)
-            - 자기 자신을 팔로우할 경우 : "You cannot follow yourself" (403)
-            - 이미 팔로우한 경우 : "Already exist" (409)
-            - 유저가 존재하지 않는 경우 : "User not found" (404)
-            - 기타 예외 발생 : 에러 메시지 (500)
-        """
-        try:
-            user, token_response = authenticate_token(request)
-            if token_response:
-                return token_response
-
-            body = json.loads(request.body)
-            nickname = body.get("name")
-
-            if not nickname:
-                return JsonResponse({"message": "Nickname not provided"}, status=400)
-
-            try:
-                target_user = User.objects.get(nickname=nickname)
-            except User.DoesNotExist:
-                return JsonResponse({"message": "User not found"}, status=404)
-
-            if user == target_user:
-                return JsonResponse(
-                    {"message": "You cannot follow yourself"}, status=403
+@swagger_auto_schema(
+    method="patch",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "name": openapi.Schema(
+                type=openapi.TYPE_STRING, description="New nickname"
+            ),
+        },
+        required=["name"],
+    ),
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+            examples=[{"message": "success"}],  # Examples!
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
                 )
-
-            if Follow.objects.filter(userA=user, userB=target_user).exists():
-                return JsonResponse({"message": "Already exist"}, status=409)
-
-            Follow.objects.create(userA=user, userB=target_user)
-            return JsonResponse({"message": "Follow complete"}, status=201)
-
-        except Exception as e:
-            return JsonResponse({"message": str(e)}, status=500)
-
-    @csrf_exempt
-    def delete(self, request):
-        """
-        @brief 특정 유저의 팔로우를 취소하는 함수
-
-        @param request Django의 HTTP 요청 객체
-
-        @return
-            - 팔로우 취소 성공 : "Unfollow complete" (200)
-            - 팔로우가 존재하지 않는 경우 : "Follow relation not found" (404)
-            - 기타 예외 발생 : 에러 메시지 (500)
-        """
-        try:
-            user, token_response = authenticate_token(request)
-            if token_response:
-                return token_response
-
-            body = json.loads(request.body)
-            nickname = body.get("name")
-
-            if not nickname:
-                return JsonResponse({"message": "Nickname not provided"}, status=400)
-
-            try:
-                target_user = User.objects.get(nickname=nickname)
-            except User.DoesNotExist:
-                return JsonResponse({"message": "User not found"}, status=404)
-
-            follow_relation = Follow.objects.filter(userA=user, userB=target_user)
-
-            if not follow_relation.exists():
-                return JsonResponse(
-                    {"message": "Follow relation not found"}, status=404
+            },
+        ),
+        452: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
                 )
-
-            follow_relation.delete()
-            return JsonResponse({"message": "Unfollow complete"}, status=200)
-
-        except json.JSONDecodeError:
-            return JsonResponse({"message": "Invalid JSON format"}, status=400)
-
-        except Exception as e:
-            return JsonResponse({"message": str(e)}, status=500)
-
-
-@api_view(["GET"])
-def get_follows(request):
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Changes the user's nickname.",
+    operation_summary="Change nickname",
+)
+@api_view(["PATCH"])
+def change_nickname(request):
     """
-    @brief 팔로우 하고있는 유저들의 데이터를 요청하는 함수
+    @brief 유저의 nickname을 변경하는 함수
 
     @param request Django의 HTTP 요청 객체
 
     @return
-        - 성공 : 팔로우 하고있는 유저들의 데이터 (200)
-        - 기타 예외 발생 : 에러 메시지 (500)
+        - 성공 : 닉네임 변경 성공 메시지 (200)
+        - 기타 예외 발생 : 에러 메시지 (4xx, 500)
     """
     try:
         user, token_response = authenticate_token(request)
         if token_response:
             return token_response
 
-        follows = user.following.all()
+        body = json.loads(request.body)
+        new_nickname = body.get("name")
 
-        follow_list = []
-        for follow in follows:
-            if follow.userA == user:
-                follow_user = follow.userB
+        if not new_nickname:
+            return JsonResponse({"message": "Nickname not provided"}, status=400)
 
-            follow_list.append(
-                {"nickname": follow_user.nickname, "imagePath": follow_user.imagePath}
-            )
-        return JsonResponse({"data": follow_list}, status=200)
+        if User.objects.filter(nickname=new_nickname).exists():
+            return JsonResponse({"message": "Nickname is already in use"}, status=409)
+
+        user.nickname = new_nickname
+        user.save()
+
+        return JsonResponse({"message": "success"}, status=200)
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
+
+
+@swagger_auto_schema(
+    method="post",
+    manual_parameters=[
+        openapi.Parameter(
+            name="profile_image",
+            in_=openapi.IN_FORM,
+            type=openapi.TYPE_FILE,
+            description="Profile image file",
+            required=True,
+        ),
+    ],
+    responses={
+        201: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Image change success"
+                )
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    example="Invalid file type. Only JPG, JPEG, PNG allowed.",
+                )
+            },
+        ),
+        401: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Invalid or expired refresh token"
+                )
+            },
+        ),
+        452: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Token refreshed"
+                )
+            },
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(
+                    type=openapi.TYPE_STRING, example="Unexpected server error"
+                )
+            },
+        ),
+    },
+    operation_description="Uploads and changes the user's profile image.",
+    operation_summary="Change profile image",
+)
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+def change_profile_image(request):
+    """
+    @brief 유저가 업로드 한 이미지를 저장하고 유저의 프로필 이미지를 변경하는 함수
+
+    @param request Django의 HTTP 요청 객체
+
+    @return
+        - 성공 : 프로필 이미지 변경 성공 메시지 (201)
+        - 기타 예외 발생 : 에러 메시지 (4xx, 500)
+    """
+    try:
+        user, token_response = authenticate_token(request)
+        if token_response:
+            return token_response
+
+        if "profile_image" not in request.FILES:
+            return JsonResponse({"message": "No file provided"}, status=400)
+
+        image = request.FILES["profile_image"]
+
+        allowed_extensions = [".jpg", ".jpeg", ".png"]
+        _, ext = os.path.splitext(image.name)
+        ext = ext.lower()
+
+        if ext not in allowed_extensions:
+            return JsonResponse(
+                {"message": "Invalid file type. Only JPG, JPEG, PNG allowed."},
+                status=400,
+            )
+
+        front_server_url = os.environ.get("FRONT_SERVER_URL", "").rstrip("/")
+        default_image_url = f"{front_server_url}/src/imgs/default.jpeg"
+
+        if (
+            user.imagePath
+            and user.imagePath != default_image_url
+            and not user.imagePath.startswith("https://cdn.intra.42.fr")
+        ):
+            old_image_path = user.imagePath.replace(
+                f"{front_server_url}/media/", ""
+            ).lstrip("/")
+
+            if default_storage.exists(old_image_path):
+                try:
+                    default_storage.delete(old_image_path)
+                except Exception as e:
+                    return JsonResponse(
+                        {"message": f"Error deleting old file: {str(e)}"}, status=500
+                    )
+
+        file_name = f"{user.username}{ext}"
+        file_path = os.path.join("profile_images", file_name)
+
+        saved_path = default_storage.save(file_path, ContentFile(image.read()))
+        image_url = f"{front_server_url}/src/media/{saved_path}"
+
+        user.imagePath = image_url
+        user.save()
+
+        return JsonResponse({"message": "Image change success"}, status=201)
+
+    except KeyError:
+        return JsonResponse({"message": "Missing required fields"}, status=400)
+
+    except Exception as e:
+        return JsonResponse({"message": f"Unexpected error: {str(e)}"}, status=500)

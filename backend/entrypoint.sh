@@ -5,7 +5,7 @@ while ! nc -z "$POSTGRES_HOST" "$POSTGRES_PORT"; do
     sleep 3
 done
 
-python manage.py makemigrations account
+python manage.py makemigrations account authentication follow log
 python manage.py migrate
 
 python manage.py shell -c "
@@ -18,5 +18,9 @@ if not User.objects.filter(username=username).exists():
     User.objects.create_superuser(username=username, email=email, password=password);
     print(f'Superuser \"{username}\" created.');
 "
+
+python3 manage.py loaddata account/fixtures/user_dummy.json
+python3 manage.py loaddata log/fixtures/tournament_dummy.json
+python3 manage.py loaddata log/fixtures/normal_dummy.json 
 
 exec "$@"

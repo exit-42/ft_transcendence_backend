@@ -39,10 +39,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "drf_yasg",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
     "account",
+    "authentication",
+    "follow",
+    "log",
 ]
 
 REST_FRAMEWORK = {
@@ -93,15 +97,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "transcendence.wsgi.application"
 
-ASGI_APPLICATION = "transcendence.asgi.application"
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis", 6379)],
-        },
-    },
-}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -213,3 +208,22 @@ CSRF_TRUSTED_ORIGINS = [
     os.environ.get("FRONT_SERVER_URL"),
     os.environ.get("BACK_SERVER_URL"),
 ]
+
+
+# MEDIA
+MEDIA_ROOT = "/app/media/"
+
+MEDIA_URL = "/media/"
+
+
+# REDIS
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
