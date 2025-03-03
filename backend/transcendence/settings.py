@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "authentication",
     "follow",
     "log",
+    "room",
 ]
 
 REST_FRAMEWORK = {
