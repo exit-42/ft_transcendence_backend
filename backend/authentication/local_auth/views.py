@@ -205,8 +205,6 @@ def get_local_auth_token(request):
 
         stored_user_id = request.session.get("user_id")
         stored_code = request.session.get("authenticate_code")
-        del request.session["user_id"]
-        del request.session["authenticate_code"]
 
         if not stored_user_id or not stored_code:
             return JsonResponse(
@@ -218,6 +216,9 @@ def get_local_auth_token(request):
                 user = User.objects.get(id=stored_user_id)
             except User.DoesNotExist:
                 return JsonResponse({"message": "User not found"}, status=401)
+
+            del request.session["user_id"]
+            del request.session["authenticate_code"]
 
             refresh = RefreshToken.for_user(user)
             access = refresh.access_token
