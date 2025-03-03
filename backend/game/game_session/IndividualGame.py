@@ -1,5 +1,5 @@
-import IGame
-import PingPongMatch
+from .IGame import *
+from .PingPongMatch import *
 import asyncio
 import json
 from websockets import WebSocketServerProtocol
@@ -14,7 +14,7 @@ class individual(IGame):
         asyncio.create_task(self.player_handler(player2_info.websocket, match, 2))
         result = await match.run()
         await self.send_log(result, player1_info, player2_info, 1)
-        # print(f"[Individual] Match finished. Winner: Player {winner}")
+        print(f"[Individual] Match finished. Winner: Player {result.winner}")
 
     async def matchmaker(self):
         while True:
@@ -22,7 +22,6 @@ class individual(IGame):
                 # 대기 중인 플레이어 2명을 꺼내서 경기를 시작합니다.
                 p1_info = self.waiting_queue.pop(0)
                 p2_info = self.waiting_queue.pop(0)
-                # print("[Individual] Starting a match.")
                 self.game_start = True
                 await asyncio.create_task(self.start_match(p1_info, p2_info))
                 break
