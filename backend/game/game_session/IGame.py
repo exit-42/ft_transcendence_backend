@@ -7,6 +7,7 @@ import os
 from .PingPongMatch import *
 import sys
 
+lock = asyncio.Lock()
 
 class IGame(metaclass=ABCMeta):
     def __init__(self, room_id):
@@ -59,7 +60,7 @@ class IGame(metaclass=ABCMeta):
                     match.player2_score = 5
                 else:
                     match.winner = 1
-                    match.player2_score = 5
+                    match.player1_score = 5
 
     async def broadcast_to_waiting(self, message):
         for player in self.waiting_queue:
@@ -83,10 +84,12 @@ class IGame(metaclass=ABCMeta):
         candidate_msg = json.dumps(
             {"type": "join", "room_id": self.room_id, "player": username}
         )
-        await self.system.send(candidate_msg)
 
-        # system 소켓으로부터 success 메시지 수신 (여기서 imagePath, winCnt, loseCnt 포함)
-        success_msg = await self.system.recv()
+        async with lock:
+            await self.system.send(candidate_msg)
+            # system 소켓으로부터 success 메시지 수신 (여기서 imagePath, winCnt, loseCnt 포함)
+            success_msg = await self.system.recv()
+        
         success_data = json.loads(success_msg)
         if success_data.get("type") == "success":
             imagePath = success_data.get("img_path")
