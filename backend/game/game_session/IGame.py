@@ -19,12 +19,11 @@ class IGame(metaclass=ABCMeta):
     @classmethod
     async def create(cls, room_id):
         instance = cls(room_id)
-        await instance.connect_to_websocket()  # 웹소켓 연결 완료를 보장
+        await instance.connect_to_websocket()
         return instance
 
     async def connect_to_websocket(self):
         uri = os.getenv("DJANGO_WEBSOCKET_URI")
-        # self.system = await websockets.connect(uri)
         self.system = await websockets.connect(
             uri, additional_headers={"Origin": "ws://127.0.0.1"}
         )
@@ -37,11 +36,10 @@ class IGame(metaclass=ABCMeta):
         """
         각 플레이어 소켓에서 들어오는 메시지를 읽어 해당 플레이어 큐(match.input_queues)에 저장
         """
-        TIMEOUT_DURATION = 0.1  # 타임아웃 시간 (초) - 필요에 따라 조정
+        TIMEOUT_DURATION = 0.1  # 타임아웃 시간 (초)
         try:
             while not match.game_over:
                 try:
-                    # message = await websocket.recv()
                     message = await asyncio.wait_for(
                         websocket.recv(), timeout=TIMEOUT_DURATION
                     )
@@ -80,14 +78,14 @@ class IGame(metaclass=ABCMeta):
             await websocket.close(code=1008, reason="Unauthorized")
             return
 
-        # 후보군 처리: 우선 system 소켓에 part 메시지 전송
+        # 후보군 처리: 우선 django와 연결된 소켓에 part 메시지 전송
         candidate_msg = json.dumps(
             {"type": "join", "room_id": self.room_id, "player": username}
         )
 
         async with lock:
             await self.system.send(candidate_msg)
-            # system 소켓으로부터 success 메시지 수신 (여기서 imagePath, winCnt, loseCnt 포함)
+            # django와 연결된 소켓으로부터 success 메시지 수신 (여기서 imagePath, winCnt, loseCnt 포함)
             success_msg = await self.system.recv()
         
         success_data = json.loads(success_msg)

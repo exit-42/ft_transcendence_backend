@@ -19,7 +19,6 @@ class individual(IGame):
     async def matchmaker(self):
         while True:
             if len(self.waiting_queue) >= 2:
-                # 대기 중인 플레이어 2명을 꺼내서 경기를 시작합니다.
                 p1_info = self.waiting_queue.pop(0)
                 p2_info = self.waiting_queue.pop(0)
                 self.game_start = True

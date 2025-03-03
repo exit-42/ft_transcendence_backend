@@ -17,7 +17,6 @@ class tournament(IGame):
     async def matchmaker(self):
         while True:
             if len(self.waiting_queue) >= 4:
-                # 4명의 플레이어를 꺼냅니다.
                 p1_info = self.waiting_queue.pop(0)
                 p2_info = self.waiting_queue.pop(0)
                 p3_info = self.waiting_queue.pop(0)
@@ -57,12 +56,5 @@ class tournament(IGame):
                 asyncio.create_task(self.player_handler(winner2.websocket, final_match, 2))
                 final_result = await final_match.run()
                 await self.send_log(final_result, winner1, winner2, 2)
-                # print(f"[Tournament] Tournament finished. Final Winner: Player {final_winner}")
-                # for p in [p1_info, p2_info, p3_info, p4_info]:
-                #     try:
-                #         await p.close()
-                #     except:
-                #         pass
-                # await self.system.close()
                 break
             await asyncio.sleep(0.1)

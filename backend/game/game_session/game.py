@@ -20,7 +20,6 @@ async def main_server(room_id, mode, port, certfile, keyfile):
 
     asyncio.create_task(game.matchmaker())
 
-    # SSL 컨텍스트 생성 및 인증서/키 로드 (wss 지원)
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ssl_context.load_cert_chain(certfile=certfile, keyfile=keyfile)
 
