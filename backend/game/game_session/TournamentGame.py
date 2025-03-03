@@ -42,7 +42,7 @@ class tournament(IGame):
                 )
                 try:
                     for p in [p1_info, p2_info, p3_info, p4_info]:
-                        p.websocket.send(final_msg)
+                        await p.websocket.send(final_msg)
                 except:
                     pass
                 await asyncio.sleep(3)
@@ -53,14 +53,10 @@ class tournament(IGame):
 
                 # print("[Tournament] Starting final match.")
                 final_match = PingPongMatch([winner1, winner2], watch_list)
-                await asyncio.create_task(
-                    self.player_handler(winner1.websocket, final_match, 1)
-                )
-                await asyncio.create_task(
-                    self.player_handler(winner2.websocket, final_match, 2)
-                )
+                asyncio.create_task(self.player_handler(winner1.websocket, final_match, 1))
+                asyncio.create_task(self.player_handler(winner2.websocket, final_match, 2))
                 final_result = await final_match.run()
-                await self.send_log(final_result, winner1, winner2, 1)
+                await self.send_log(final_result, winner1, winner2, 2)
                 # print(f"[Tournament] Tournament finished. Final Winner: Player {final_winner}")
                 # for p in [p1_info, p2_info, p3_info, p4_info]:
                 #     try:

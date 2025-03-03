@@ -169,15 +169,9 @@ class PingPongMatch:
             "player": [self.paddle1_x, self.paddle2_x],
         }
         msg1 = json.dumps(state1)
-        state2 = {
-            "type": "play",
-            "ball": ball_pos_rounded,  # [x, y, z]
-            "player": [self.paddle2_x, self.paddle1_x],
-        }
-        msg2 = json.dumps(state2)
         try:
             await self.player1_info.websocket.send(msg1)
-            await self.player2_info.websocket.send(msg2)
+            await self.player2_info.websocket.send(msg1)
         except Exception as e:
             self.game_over = True
 
@@ -194,12 +188,16 @@ class PingPongMatch:
                 "type": "set_result",
                 "win": self.player1_info.username,
                 "lose": self.player2_info.username,
+                "p1_score": self.player1_score,
+                "p2_score": self.player2_score,
             }
         else:
             result = {
                 "type": "set_result",
                 "win": self.player2_info.username,
                 "lose": self.player1_info.username,
+                "p1_score": self.player1_score,
+                "p2_score": self.player2_score,
             }
         msg = json.dumps(result)
         try:
@@ -217,16 +215,16 @@ class PingPongMatch:
                 "type": "match_result",
                 "win": self.player1_info.username,
                 "lose": self.player2_info.username,
-                "win_cnt": self.player1_score,
-                "lose_cnt": self.player2_score,
+                "p1_score": self.player1_score,
+                "p2_score": self.player2_score,
             }
         else:
             result = {
                 "type": "match_result",
                 "win": self.player2_info.username,
                 "lose": self.player1_info.username,
-                "win_cnt": self.player2_score,
-                "lose_cnt": self.player1_score,
+                "p1_score": self.player1_score,
+                "p2_score": self.player2_score,
             }
         msg = json.dumps(result)
         for websocket in [self.player1_info.websocket, self.player2_info.websocket] + [
@@ -252,6 +250,8 @@ class PingPongMatch:
     async def run(self):
         msg = {
             "type": "start",
+            "player1" : self.player1_info.username,
+            "player2" : self.player2_info.username,
         }
         msg_json = json.dumps(msg)
         try:
