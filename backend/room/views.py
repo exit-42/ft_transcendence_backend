@@ -14,6 +14,7 @@ User = get_user_model()
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+
 class roomView(APIView):
     @swagger_auto_schema(
         manual_parameters=[

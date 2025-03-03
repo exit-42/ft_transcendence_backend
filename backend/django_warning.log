@@ -1,0 +1,77 @@
+[WARNING] 2025-03-03 06:00:56,699 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:00:56,700 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:44652]
+[WARNING] 2025-03-03 06:00:57,637 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:00:57,639 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:44700]
+[WARNING] 2025-03-03 06:00:59,591 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:00:59,592 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:44706]
+[WARNING] 2025-03-03 06:01:09,438 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:01:09,439 runserver: HTTP POST /account/login/ 401 [0.02, 172.23.0.5:44762]
+[WARNING] 2025-03-03 06:01:27,445 log: Not Found: /authentication/local-auth/signin/
+[WARNING] 2025-03-03 06:01:27,445 runserver: HTTP POST /authentication/local-auth/signin/ 404 [0.01, 172.23.0.5:44778]
+[WARNING] 2025-03-03 06:03:28,603 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:03:28,603 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:45162]
+[WARNING] 2025-03-03 06:04:14,778 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:04:14,779 runserver: HTTP POST /account/login/ 401 [0.02, 172.23.0.5:45186]
+[WARNING] 2025-03-03 06:06:01,368 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:06:01,371 runserver: HTTP POST /account/login/ 401 [0.02, 172.23.0.5:45454]
+[WARNING] 2025-03-03 06:15:12,807 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:15:12,808 runserver: HTTP POST /account/login/ 401 [0.00, 172.23.0.5:46138]
+[WARNING] 2025-03-03 06:16:49,971 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:16:49,973 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:46418]
+[WARNING] 2025-03-03 06:17:02,932 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:17:02,933 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:46576]
+[WARNING] 2025-03-03 06:18:23,857 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:18:23,858 runserver: HTTP POST /account/login/ 401 [0.00, 172.23.0.5:46688]
+[WARNING] 2025-03-03 06:18:26,008 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:18:26,009 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:46690]
+[WARNING] 2025-03-03 06:18:27,727 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-03-03 06:18:27,728 log: Unknown Status Code: /account/login/
+[WARNING] 2025-03-03 06:18:27,728 runserver: HTTP GET /follow/list/ 452 [0.01, 172.23.0.5:46750]
+[WARNING] 2025-03-03 06:18:27,730 runserver: HTTP POST /account/login/ 452 [0.01, 172.23.0.5:46752]
+[WARNING] 2025-03-03 06:19:03,989 log: Unknown Status Code: /room/
+[WARNING] 2025-03-03 06:19:03,990 runserver: HTTP GET /room/?mode=individual 452 [0.01, 172.23.0.5:46924]
+[WARNING] 2025-03-03 06:23:51,141 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:23:51,142 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:47136]
+[WARNING] 2025-03-03 06:23:53,936 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:23:53,937 runserver: HTTP POST /account/login/ 401 [0.02, 172.23.0.5:47192]
+[WARNING] 2025-03-03 06:28:01,749 log: Not Found: /favicon.ico
+[WARNING] 2025-03-03 06:28:01,750 runserver: HTTP GET /favicon.ico 404 [0.01, 172.23.0.1:64304]
+[WARNING] 2025-03-03 06:31:29,958 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:31:29,959 runserver: HTTP POST /account/login/ 401 [0.01, 172.23.0.5:48122]
+[WARNING] 2025-03-03 06:31:34,330 log: Unauthorized: /account/login/
+[WARNING] 2025-03-03 06:31:34,332 runserver: HTTP POST /account/login/ 401 [0.05, 172.23.0.5:48200]
+[WARNING] 2025-03-03 06:34:16,591 log: Unknown Status Code: /account/login/
+[WARNING] 2025-03-03 06:34:16,592 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-03-03 06:34:16,593 runserver: HTTP POST /account/login/ 452 [0.01, 172.23.0.5:48334]
+[WARNING] 2025-03-03 06:34:16,594 runserver: HTTP GET /follow/list/ 452 [0.01, 172.23.0.5:48336]
+[WARNING] 2025-03-03 06:34:33,859 log: Unknown Status Code: /account/login/
+[WARNING] 2025-03-03 06:34:33,861 runserver: HTTP POST /account/login/ 452 [0.01, 172.23.0.5:48434]
+[WARNING] 2025-03-03 06:34:33,862 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-03-03 06:34:33,863 runserver: HTTP GET /follow/list/ 452 [0.01, 172.23.0.5:48436]
+[WARNING] 2025-03-03 06:42:31,654 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-03-03 06:42:31,654 log: Unknown Status Code: /account/login/
+[WARNING] 2025-03-03 06:42:31,655 runserver: HTTP GET /follow/list/ 452 [0.01, 172.23.0.5:48888]
+[WARNING] 2025-03-03 06:42:31,656 runserver: HTTP POST /account/login/ 452 [0.01, 172.23.0.5:48890]
+[WARNING] 2025-03-03 06:46:36,606 log: Unknown Status Code: /account/login/
+[WARNING] 2025-03-03 06:46:36,608 runserver: HTTP POST /account/login/ 452 [0.01, 172.23.0.5:49440]
+[WARNING] 2025-03-03 06:49:58,211 log: Unknown Status Code: /follow/list/
+[WARNING] 2025-03-03 06:49:58,213 runserver: HTTP GET /follow/list/ 452 [0.01, 172.23.0.5:49682]
+[WARNING] 2025-03-03 06:49:58,215 log: Unknown Status Code: /account/login/
+[WARNING] 2025-03-03 06:49:58,216 runserver: HTTP POST /account/login/ 452 [0.02, 172.23.0.5:49684]
+[WARNING] 2025-03-03 06:51:42,451 log: Unknown Status Code: /log/
+[WARNING] 2025-03-03 06:51:42,452 log: Unknown Status Code: /log/
+[WARNING] 2025-03-03 06:51:42,453 runserver: HTTP GET /log/?game_type=tournament&cursor=-1 452 [0.01, 172.23.0.5:50128]
+[WARNING] 2025-03-03 06:51:42,455 runserver: HTTP GET /log/?game_type=normal&cursor=-1 452 [0.02, 172.23.0.5:50126]
+[WARNING] 2025-03-03 06:51:52,057 log: Not Found: /favicon.ico
+[WARNING] 2025-03-03 06:51:52,058 runserver: HTTP GET /favicon.ico 404 [0.01, 172.23.0.1:56234]
+[ERROR] 2025-03-03 06:53:40,760 runserver: HTTP GET /room/?mode=individual 500 [0.23, 172.23.0.5:50508]
+[ERROR] 2025-03-03 06:53:44,775 runserver: HTTP GET /follow/list/ 500 [0.53, 172.23.0.5:50510]
+[ERROR] 2025-03-03 06:53:44,777 runserver: HTTP POST /account/login/ 500 [0.53, 172.23.0.5:50512]
+[ERROR] 2025-03-03 06:53:46,784 runserver: HTTP GET /follow/list/ 500 [0.54, 172.23.0.5:50514]
+[ERROR] 2025-03-03 06:53:46,786 runserver: HTTP POST /account/login/ 500 [0.54, 172.23.0.5:50516]
+[WARNING] 2025-03-03 06:57:31,082 log: Unknown Status Code: /log/
+[WARNING] 2025-03-03 06:57:31,083 log: Unknown Status Code: /log/
+[WARNING] 2025-03-03 06:57:31,084 runserver: HTTP GET /log/?game_type=tournament&cursor=-1 452 [0.02, 172.23.0.5:51214]
+[WARNING] 2025-03-03 06:57:31,088 runserver: HTTP GET /log/?game_type=normal&cursor=-1 452 [0.02, 172.23.0.5:51212]
+[ERROR] 2025-03-03 09:13:24,049 runserver: HTTP GET /log/?game_type=tournament&cursor=-1 500 [0.35, 172.23.0.5:51632]
+[ERROR] 2025-03-03 09:13:24,051 runserver: HTTP GET /log/?game_type=normal&cursor=-1 500 [0.35, 172.23.0.5:51634]
