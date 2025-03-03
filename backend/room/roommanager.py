@@ -3,7 +3,7 @@ import socket
 import random
 from log.utils import *
 
-# from .game_session.game import *
+from .game_session.game import *
 import os
 
 import logging
@@ -66,11 +66,10 @@ class RoomManager:
         port = self.get_open_port()
         if port is None:
             return None
-        # process = multiprocessing.Process(target=start_server, args=(room_id, mode, port))
-        # process.start()
-        # pid = process.pid
-        pid = None
-
+        process = multiprocessing.Process(target=start_server, args=(room_id, mode, port))
+        process.start()
+        pid = process.pid
+        
         self.rooms[room_id] = {
             "player_number": 0,
             "room_id": room_id,
