@@ -22,7 +22,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         """WebSocket으로 JSON 메시지를 받을 때 실행"""
         try:
             data = json.loads(text_data)  # JSON 파싱
-            logger.info("consumer : " + text_data)
             message_type = data.get("type")
             if message_type == "ping":
                 await self.send(json.dumps({"type": "pong", "message": "hello"}))
@@ -52,10 +51,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                             )
                         )
                 else:
-                    logger.info("exit start")
                     success = room_manager.exit_room(room_id, player)
                     if not success:
-                        logger.info("exit fail")
+                        logger.info("status : error " + text_data)
                         await self.send(json.dumps({"type": "error"}))
             elif message_type == "result":
                 room_id = data.get("room_id")
@@ -86,7 +84,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                 # room_manager.save_match(room_id, result)
                 await sync_to_async(room_manager.save_match)(room_id, result)
             else:
+                logger.info("status : error " + text_data)
                 await self.send(json.dumps({"type": "error"}))
 
         except json.JSONDecodeError:
+            logger.info("status : error " + text_data)
             await self.send(json.dumps({"type": "error"}))
