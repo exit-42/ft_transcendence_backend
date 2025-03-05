@@ -220,7 +220,11 @@ def change_nickname(request):
         if not new_nickname:
             return JsonResponse({"message": "Nickname not provided"}, status=400)
 
-        if len(new_nickname) > 15 or len(new_nickname) < 3 or not re.match(r"^[A-Za-z0-9]+$", new_nickname):
+        if (
+            len(new_nickname) > 15
+            or len(new_nickname) < 3
+            or not re.match(r"^[A-Za-z0-9]+$", new_nickname)
+        ):
             return JsonResponse({"message": "Nickname is invalid"}, status=400)
 
         if User.objects.filter(nickname=new_nickname).exists():
