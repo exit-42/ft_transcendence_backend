@@ -129,7 +129,6 @@ def generate_random_nickname():
     최종적으로 중복되지 않은 닉네임을 리턴한다.
     """
     while True:
-        random_number = f"{random.randint(10000, 99999):05}"
-        nickname = f"#{random_number}"
-        if not User.objects.filter(nickname=nickname).exists():
-            return nickname
+        random_nickname = str(random.randint(10000, 99999))
+        if not User.objects.filter(nickname=random_nickname).exists():
+            return random_nickname
