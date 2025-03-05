@@ -609,6 +609,19 @@ def local_auth_sign_up(request):
                 status=400,
             )
 
+        if not (7 <= len(local_password) <= 20):
+            return JsonResponse(
+                {"message": "Password must be between 7 and 20 characters."}, status=400
+            )
+
+        if not re.match(r"^[A-Za-z0-9!@#$%^&*()-_+=<>?]+$", local_password):
+            return JsonResponse(
+                {
+                    "message": "Password can only contain letters, numbers, and special characters."
+                },
+                status=400,
+            )
+
         if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", user_email):
             return JsonResponse({"message": "Invalid email format."}, status=400)
 
