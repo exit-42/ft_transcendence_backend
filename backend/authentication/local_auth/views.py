@@ -1,4 +1,4 @@
-import os, random, json
+import os, random, json, re
 from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
@@ -314,6 +314,17 @@ def check_local_auth_id(request):
         if not local_id:
             return JsonResponse({"message": "ID not provided."}, status=400)
 
+        if not (7 <= len(local_id) <= 15):
+            return JsonResponse(
+                {"message": "ID must be between 7 and 15 characters."}, status=400
+            )
+
+        if not re.match(r"^[a-z0-9]+$", local_id):
+            return JsonResponse(
+                {"message": "ID can only contain lowercase letters and numbers."},
+                status=400,
+            )
+
         if LocalAuth.objects.filter(localId=local_id).exists():
             return JsonResponse({"message": "ID already in use"}, status=409)
         else:
@@ -597,6 +608,33 @@ def local_auth_sign_up(request):
 
         if not local_id or not local_password or not user_email:
             return JsonResponse({"message": "All fields are required."}, status=400)
+
+        if not (7 <= len(local_id) <= 15):
+            return JsonResponse(
+                {"message": "ID must be between 7 and 15 characters."}, status=400
+            )
+
+        if not re.match(r"^[a-z0-9]+$", local_id):
+            return JsonResponse(
+                {"message": "ID can only contain lowercase letters and numbers."},
+                status=400,
+            )
+
+        if not (7 <= len(local_password) <= 20):
+            return JsonResponse(
+                {"message": "Password must be between 7 and 20 characters."}, status=400
+            )
+
+        if not re.match(r"^[A-Za-z0-9!@#$%^&*()-_+=<>?]+$", local_password):
+            return JsonResponse(
+                {
+                    "message": "Password can only contain letters, numbers, and special characters."
+                },
+                status=400,
+            )
+
+        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", user_email):
+            return JsonResponse({"message": "Invalid email format."}, status=400)
 
         if LocalAuth.objects.filter(localId=local_id).exists():
             return JsonResponse({"message": "ID already in use"}, status=409)
