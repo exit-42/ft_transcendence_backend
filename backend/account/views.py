@@ -1,4 +1,4 @@
-import os, json
+import os, json, re
 from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
@@ -206,6 +206,7 @@ def change_nickname(request):
 
     @return
         - 성공 : 닉네임 변경 성공 메시지 (200)
+        - 닉네임 형식 오류 (400)
         - 기타 예외 발생 : 에러 메시지 (4xx, 500)
     """
     try:
@@ -218,6 +219,9 @@ def change_nickname(request):
 
         if not new_nickname:
             return JsonResponse({"message": "Nickname not provided"}, status=400)
+
+        if len(new_nickname) > 15 or len(new_nickname) < 3 or not re.match(r"^[A-Za-z0-9]+$", new_nickname):
+            return JsonResponse({"message": "Nickname is invalid"}, status=400)
 
         if User.objects.filter(nickname=new_nickname).exists():
             return JsonResponse({"message": "Nickname is already in use"}, status=409)
