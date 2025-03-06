@@ -139,7 +139,9 @@ class PingPongMatch:
                 await asyncio.sleep(3)
 
         # 공의 y 좌표 업데이트 (규칙에 따른 공식 적용)
-        self.ball_pos[1] = BALL_MAX_Y * abs(math.cos(math.pi / 3 * self.ball_pos[2])) + BOARD_HEIGHT
+        self.ball_pos[1] = (
+            BALL_MAX_Y * abs(math.cos(math.pi / 3 * self.ball_pos[2])) + BOARD_HEIGHT
+        )
 
         # 게임 종료 조건 (5점 도달 시)
         if self.player1_score >= 5:
