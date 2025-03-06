@@ -56,6 +56,19 @@ def set_game_end(game_id):
             logger.debug("set_game_end : game not exist " + str(game_id))
             return False
 
+        matches = Match.objects.filter(game=game)
+
+        for match in matches:
+            if match.scoreA > match.scoreB:
+                match.playerA.winCnt += 1
+                match.playerB.loseCnt += 1
+            elif match.scoreA < match.scoreB:
+                match.playerB.winCnt += 1
+                match.playerA.loseCnt += 1
+
+            match.playerA.save()
+            match.playerB.save()
+
         game.isEnd = True
         game.save()
 
