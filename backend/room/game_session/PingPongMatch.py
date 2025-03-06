@@ -19,16 +19,25 @@ GAME_WIDTH = 3  # x: -1.5 ~ 1.5
 GAME_DEPTH = 6  # z: -3 ~ 3
 # y는 공의 z좌표에 따라 아래의 공식으로 산출 (최소값 1.5 이상)
 
+# 보드의 예상 높이
+BOARD_HEIGHT = 1.6
+
+# 튕긴 공의 최대 높이
+BALL_MAX_Y = 0.5
+
+# 렌더링 위치를 위한 offset
+PADDLE_POS_OFFSET = 0.3
+
 FPS = 30
 FRAME_DURATION = 1 / FPS
 
-PADDLE_SPEED = 0.1  # x축 이동량
+PADDLE_SPEED = 0.3  # x축 이동량
 PADDLE_WIDTH = 0.5  # 패들 너비 (중심 기준)
 BALL_RADIUS = 0.05  # 공 반지름
 
 # 플레이어의 고정 z 좌표
-PLAYER1_Z = -3
-PLAYER2_Z = 3
+PLAYER1_Z = 3
+PLAYER2_Z = -3
 
 
 # ============================================
@@ -81,9 +90,9 @@ class PingPongMatch:
                             )
                         elif player == 2:
                             if direction == "left":
-                                self.paddle2_x -= PADDLE_SPEED
-                            elif direction == "right":
                                 self.paddle2_x += PADDLE_SPEED
+                            elif direction == "right":
+                                self.paddle2_x -= PADDLE_SPEED
                             self.paddle2_x = max(
                                 -1.5 + PADDLE_WIDTH / 2,
                                 min(1.5 - PADDLE_WIDTH / 2, self.paddle2_x),
@@ -106,7 +115,7 @@ class PingPongMatch:
 
         # 패들과의 충돌 체크 (z 방향)
         # 플레이어1 (z = -3): 공이 플레이어1 방향으로 이동 중 (z 속도 음수)
-        if self.ball_vel[1] < 0 and self.ball_pos[2] - BALL_RADIUS <= PLAYER1_Z:
+        if self.ball_vel[1] > 0 and self.ball_pos[2] - BALL_RADIUS >= PLAYER1_Z:
             # 패들의 x 좌표 차이가 패들 폭 이내이면 충돌
             if abs(self.ball_pos[0] - self.paddle1_x) <= PADDLE_WIDTH / 2:
                 self.ball_vel[1] *= -1  # z 속도 반전
@@ -118,7 +127,7 @@ class PingPongMatch:
                 self.init_ball_pos()
                 await asyncio.sleep(3)
         # 플레이어2 (z = 3): 공이 플레이어2 방향으로 이동 중 (z 속도 양수)
-        elif self.ball_vel[1] > 0 and self.ball_pos[2] + BALL_RADIUS >= PLAYER2_Z:
+        elif self.ball_vel[1] < 0 and self.ball_pos[2] + BALL_RADIUS <= PLAYER2_Z:
             if abs(self.ball_pos[0] - self.paddle2_x) <= PADDLE_WIDTH / 2:
                 self.ball_vel[1] *= -1  # z 속도 반전
                 self.last_hit = PLAYER2_Z
@@ -130,26 +139,9 @@ class PingPongMatch:
                 await asyncio.sleep(3)
 
         # 공의 y 좌표 업데이트 (규칙에 따른 공식 적용)
-        # 플레이어로부터 튕긴 직후부터 (z와 플레이어의 거리 4.5 이하)에는:
-        if self.last_hit is None or abs(self.ball_pos[2] - self.last_hit) <= 4.5:
-            self.ball_pos[1] = abs(math.cos(math.pi / 3 * self.ball_pos[2])) + 1
-        else:
-            # 마지막 튕긴 플레이어에 따라 두 가지 경우
-            if (
-                self.last_hit == PLAYER1_Z and self.ball_vel[1] > 0
-            ):  # 공이 z 방향으로 증가
-                self.ball_pos[1] = (
-                    abs(math.cos(math.pi / 9 * (self.ball_pos[2] - 3))) + 1
-                )
-            elif (
-                self.last_hit == PLAYER2_Z and self.ball_vel[1] < 0
-            ):  # 공이 z 방향으로 감소
-                self.ball_pos[1] = (
-                    abs(math.cos(math.pi / 9 * (self.ball_pos[2] - 6))) + 1
-                )
-            else:
-                # 기본 공식
-                self.ball_pos[1] = abs(math.cos(math.pi / 3 * self.ball_pos[2])) + 1
+        self.ball_pos[1] = (
+            BALL_MAX_Y * abs(math.cos(math.pi / 3 * self.ball_pos[2])) + BOARD_HEIGHT
+        )
 
         # 게임 종료 조건 (5점 도달 시)
         if self.player1_score >= 5:
